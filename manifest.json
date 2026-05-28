@@ -1,0 +1,12 @@
+{
+  "display_name": "Landing Page Redux",
+  "loading_order": 100,
+  "requires": [],
+  "optional": [],
+  "js": "index.js",
+  "css": "style.css",
+  "author": "nrahis",
+  "version": "0.1.0",
+  "homePage": "https://github.com/nrahis/SillyTavern-LandingPageRedux",
+  "auto_update": false
+}

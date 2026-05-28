@@ -1,0 +1,49 @@
+{
+  "themes": [
+    {
+      "id": "glass",
+      "name": "Glass",
+      "variables": {
+        "--lp-bg-main": "rgba(0, 0, 0, 0.3)",
+        "--lp-sidebar-bg": "linear-gradient(to right, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.15), transparent)",
+        "--lp-sidebar-blur": "10px",
+        "--lp-menu-bg": "rgba(10, 10, 14, 0.7)",
+        "--lp-border-soft": "rgba(255, 255, 255, 0.08)",
+        "--lp-border-strong": "rgba(255, 255, 255, 0.18)",
+        "--lp-text-primary": "rgba(255, 255, 255, 0.9)",
+        "--lp-text-secondary": "rgba(255, 255, 255, 0.65)",
+        "--lp-text-tertiary": "rgba(255, 255, 255, 0.4)"
+      }
+    },
+    {
+      "id": "dark",
+      "name": "Dark",
+      "variables": {
+        "--lp-bg-main": "rgba(0, 0, 0, 0.55)",
+        "--lp-sidebar-bg": "linear-gradient(to right, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.1))",
+        "--lp-sidebar-blur": "8px",
+        "--lp-menu-bg": "rgba(10, 10, 14, 0.85)",
+        "--lp-border-soft": "rgba(255, 255, 255, 0.06)",
+        "--lp-border-strong": "rgba(255, 255, 255, 0.15)",
+        "--lp-text-primary": "rgba(255, 255, 255, 0.92)",
+        "--lp-text-secondary": "rgba(255, 255, 255, 0.6)",
+        "--lp-text-tertiary": "rgba(255, 255, 255, 0.35)"
+      }
+    },
+    {
+      "id": "solid-dark",
+      "name": "Solid Dark",
+      "variables": {
+        "--lp-bg-main": "rgba(10, 10, 12, 0.95)",
+        "--lp-sidebar-bg": "rgba(20, 20, 25, 0.85)",
+        "--lp-sidebar-blur": "12px",
+        "--lp-menu-bg": "rgba(15, 15, 18, 0.95)",
+        "--lp-border-soft": "rgba(255, 255, 255, 0.06)",
+        "--lp-border-strong": "rgba(255, 255, 255, 0.15)",
+        "--lp-text-primary": "rgba(255, 255, 255, 0.92)",
+        "--lp-text-secondary": "rgba(255, 255, 255, 0.6)",
+        "--lp-text-tertiary": "rgba(255, 255, 255, 0.35)"
+      }
+    }
+  ]
+}

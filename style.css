@@ -1,0 +1,1356 @@
+/* ============================================================
+   Landing Page Redux — base styles
+   Step 1 scaffold: container + sidebar + cards-area shells,
+   theme variables on .lp-container (themeManager swaps these in step 2).
+   ============================================================ */
+
+:root {
+    /* Theme variables (defaults = Glass). themeManager swaps these at runtime. */
+    --lp-bg-main: rgba(0, 0, 0, 0.3);
+    --lp-bg-overlay: rgba(0, 0, 0, 0.35);
+    --lp-sidebar-bg: linear-gradient(to right, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.15), transparent);
+    --lp-sidebar-blur: 10px;
+    --lp-menu-bg: rgba(10, 10, 14, 0.7);
+    --lp-border-soft: rgba(255, 255, 255, 0.08);
+    --lp-border-strong: rgba(255, 255, 255, 0.18);
+    --lp-text-primary: rgba(255, 255, 255, 0.9);
+    --lp-text-secondary: rgba(255, 255, 255, 0.65);
+    --lp-text-tertiary: rgba(255, 255, 255, 0.4);
+    --lp-sidebar-width: 250px;
+    --lp-gap: 16px;
+    --lp-radius-md: 6px;
+    /* Sprite-view sizing knob. calculateCardSizes() reads this as the base
+       card height; everything else (avatar box, width) derives from it.
+       Tweak this one value (here or live on :root in devtools) to resize. */
+    --lp-card-base-height: 450px;
+}
+
+.lp-container {
+    position: fixed;
+    inset: 0;
+    z-index: 9000; /* above ST's #top-bar (3005); below our menus (10000) + modal (10001/2) */
+    display: flex;
+    flex-direction: row;
+    background: var(--lp-bg-main);
+    color: var(--lp-text-primary);
+    opacity: 0;
+    transition: opacity 400ms ease;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.lp-container.lp-loaded {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Hide ST's chat shell + top bar while the landing page is up.
+   (#top-bar sits at z-index 3005; we also cover it via the container's
+   z-index, but hiding it avoids it bleeding through the translucent theme.) */
+body:has(.lp-container.lp-loaded) #sheld,
+body:has(.lp-container.lp-loaded) #top-bar {
+    display: none !important;
+}
+
+/* Background crossfade — two stacked layers, only the active one is opaque.
+   refreshBackground() sets the incoming layer's image + toggles the active
+   class; the opacity transition does the fade. (background-image can't animate,
+   which is why the old single-layer transition was a no-op.) */
+.lp-background-wrap {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+}
+
+.lp-bg-layer {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    opacity: 0;
+    transition: opacity 500ms ease;
+}
+
+.lp-bg-layer-active {
+    opacity: 1;
+}
+
+.lp-background-overlay {
+    position: absolute;
+    inset: 0;
+    background: var(--lp-bg-overlay);
+    z-index: 1;
+    pointer-events: none;
+}
+
+.lp-sidebar {
+    position: relative;
+    z-index: 2;
+    width: var(--lp-sidebar-width);
+    flex-shrink: 0;
+    height: 100vh;
+    background: var(--lp-sidebar-bg);
+    backdrop-filter: blur(var(--lp-sidebar-blur));
+    -webkit-backdrop-filter: blur(var(--lp-sidebar-blur));
+    border-right: 1px solid var(--lp-border-soft);
+    display: flex;
+    flex-direction: column;
+    padding: 1.5em 1em;
+    box-sizing: border-box;
+    overflow-y: auto;
+}
+
+.lp-sidebar-placeholder {
+    text-align: center;
+    color: var(--lp-text-secondary);
+    opacity: 0.8;
+}
+
+.lp-sidebar-placeholder i {
+    font-size: 2em;
+    margin-bottom: 0.5em;
+    display: block;
+    color: var(--lp-text-tertiary);
+}
+
+.lp-sidebar-placeholder small {
+    display: block;
+    margin-top: 0.4em;
+    font-size: 0.8em;
+    color: var(--lp-text-tertiary);
+}
+
+/* ============================================================
+   User profile + persona selector (step 5)
+   ============================================================ */
+
+.lp-user-profile {
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    padding: 0.5em 0.6em;
+    border-radius: var(--lp-radius-md, 6px);
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.lp-user-profile:hover {
+    background: var(--lp-border-soft);
+}
+
+.lp-user-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.lp-user-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.lp-user-name {
+    flex: 1;
+    min-width: 0;
+    font-weight: 500;
+    color: var(--lp-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.lp-user-caret {
+    color: var(--lp-text-tertiary);
+    flex-shrink: 0;
+}
+
+/* Persona dropdown (appended to <body> for Popper positioning) */
+#lpPersonaMenu {
+    z-index: 10000;
+    background: var(--lp-menu-bg, rgba(10, 10, 14, 0.7));
+    backdrop-filter: blur(var(--lp-sidebar-blur, 12px));
+    -webkit-backdrop-filter: blur(var(--lp-sidebar-blur, 12px));
+    border: 1px solid var(--lp-border-soft);
+    border-radius: var(--lp-radius-md, 6px);
+    padding: 0.4em;
+    max-height: 50vh;
+    overflow-y: auto;
+}
+
+#lpPersonaMenu ul.list-group {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 0.4em;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    max-width: 264px;
+}
+
+#lpPersonaMenu .list-group-item {
+    width: auto !important;
+    flex: 0 0 auto;
+    padding: 0.2em;
+    border: none;
+    background: transparent;
+    border-radius: var(--lp-radius-md, 6px);
+    cursor: pointer;
+}
+
+.lpPersonaMenuImg {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+    border: 2px solid transparent;
+    transition: border-color 0.15s ease;
+}
+
+.lpPersonaMenuImg:hover {
+    border-color: var(--lp-border-strong);
+}
+
+.lpPersonaMenuImg.selected {
+    border-color: rgba(220, 180, 140, 0.9);
+}
+
+/* ============================================================
+   Custom button menu (step 6)
+   ============================================================ */
+
+.lp-sidebar-rest {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75em;
+    margin-top: 1em;
+    min-height: 0;
+}
+
+.lp-menu-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3em;
+}
+
+.lp-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 0.7em;
+    padding: 0.55em 0.7em;
+    border-radius: var(--lp-radius-md, 6px);
+    color: var(--lp-text-secondary);
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.lp-menu-item:hover {
+    background: var(--lp-border-soft);
+    color: var(--lp-text-primary);
+}
+
+.lp-menu-item i {
+    width: 1.1em;
+    text-align: center;
+    flex-shrink: 0;
+    color: var(--lp-text-tertiary);
+    transition: color 0.15s ease;
+}
+
+.lp-menu-item:hover i {
+    color: rgba(220, 180, 140, 0.9);
+}
+
+.lp-menu-item span {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.95em;
+}
+
+.lp-cards-area {
+    position: relative;
+    z-index: 2;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.lp-top-icon-bar {
+    position: absolute;
+    top: 1em;
+    right: 1em;
+    z-index: 3;
+    display: flex;
+    gap: 0.5em;
+}
+
+/* Drawer stub in the ST extensions panel */
+.lp-drawer-label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4em;
+    margin-top: 0.6em;
+    font-size: 0.9em;
+}
+
+.lp-drawer-actions {
+    margin-top: 0.8em;
+}
+
+/* ============================================================
+   Cards area + character cards (step 3: sprite view)
+   ============================================================ */
+
+.lp-cards-area {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end; /* sprite view: bottom-aligned */
+    justify-content: center;
+    gap: 0;   /* per-card margins handle spacing (sprite vs avatar differ) */
+    padding: 0 2em 2em;
+    box-sizing: border-box;
+    height: 100vh;
+}
+
+.lp-character-card {
+    width: auto;            /* hug the 3:4 avatar so cards don't drift apart */
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.4s ease;
+    transform: translateY(15%); /* bleed off the bottom edge (original feel) */
+    transform-origin: bottom center;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.lp-character-card:hover {
+    transform: translateY(8%);
+}
+
+.lp-card-avatar {
+    aspect-ratio: 3 / 4;                              /* uniform portrait */
+    height: calc(var(--lp-card-height, 450px) * 0.8); /* width derives from ratio */
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: var(--lp-radius-md, 6px);
+}
+
+.lp-card-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;            /* fill the box instead of floating at intrinsic size */
+    object-position: top center;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    filter: drop-shadow(2px 4px 10px rgba(0, 0, 0, 0.7));
+}
+
+.lp-card-avatar img.loaded {
+    opacity: 1;
+}
+
+.lp-card-name {
+    position: absolute;
+    bottom: 12%;   /* sits just above the bottom edge, clear of the bleed */
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255, 255, 255, 0.95);
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+    font-size: 1.1em;
+    font-weight: 500;
+    white-space: nowrap;
+    max-width: 95%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.lp-no-characters {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--lp-text-secondary);
+    font-size: 1.1em;
+}
+
+/* ---- Sprite view: sprite vs avatar-fallback differentiation ----
+   .lp-has-sprite  = expression image (transparent bg, tall, narrow)
+   .lp-has-card    = card avatar fallback (opaque, 3:4 portrait)
+   These only matter in sprite view; card-view overrides below win. */
+
+/* Sprites: negative margin pulls them closer (transparent bg = no visual overlap) */
+.lp-has-sprite {
+    margin: 0 -2em;
+}
+.lp-has-sprite .lp-card-avatar {
+    height: calc(var(--lp-card-height, 450px) * 1.2);
+    aspect-ratio: auto;           /* let sprite dictate its own width */
+    overflow: visible;
+    border-radius: 0;
+}
+.lp-has-sprite .lp-card-avatar img {
+    object-fit: contain;          /* show full sprite, no crop */
+    object-position: bottom center;
+    width: auto;                  /* natural width, not 100% */
+    max-width: none;
+}
+
+/* Avatar fallbacks: wider spacing, partial bottom crop, framed portrait */
+.lp-has-card {
+    margin: 0 0.5em;
+    transform: translateY(40%);   /* shift down from centered start for partial bleed */
+    align-self: center;           /* start centered; translateY does the rest */
+}
+.lp-has-card:hover {
+    transform: translateY(33%);   /* subtle lift from resting position */
+}
+/* Avatar box keeps base defaults: aspect-ratio 3:4, cover, border-radius, overflow hidden */
+
+/* Pagination arrows — minimal, icon-only */
+.lp-page-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 48px;
+    height: 48px;
+    border-radius: 0;
+    border: none;
+    background: none;
+    color: var(--lp-text-tertiary);
+    cursor: pointer;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6em;
+    transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.lp-page-arrow:hover {
+    color: var(--lp-text-primary);
+    transform: translateY(-50%) scale(1.15);
+}
+
+.lp-page-arrow-left  { left: 1em; }
+.lp-page-arrow-right { right: 1em; }
+
+
+/* ============================================================
+   Sidebar action area + settings cog (step 7)
+   ============================================================ */
+
+.lp-action-area {
+    margin-top: auto;              /* pin to the bottom of the flex column */
+    padding-top: 1em;
+    border-top: 1px solid var(--lp-border-soft);
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+}
+
+.lp-settings-cog {
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--lp-radius-md, 6px);
+    color: var(--lp-text-tertiary);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.lp-settings-cog:hover {
+    background: var(--lp-border-soft);
+    color: var(--lp-text-primary);
+}
+
+/* ============================================================
+   Control panel modal (step 7) — prefix lpm-
+   Lifted from SimpleSummarizer's modal; sits above the landing page
+   (z-index 1000) and the persona menu (z-index 10000).
+   ============================================================ */
+
+.lpm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 10001;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+}
+.lpm-overlay.lpm-visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.lpm-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.95);
+    width: min(860px, 92vw);
+    height: min(700px, 88vh);
+    background: rgba(18, 18, 22, 0.97);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    z-index: 10002;
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    pointer-events: none;
+    overflow: hidden;
+}
+.lpm-modal.lpm-visible {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+    pointer-events: auto;
+}
+
+.lpm-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    flex-shrink: 0;
+}
+.lpm-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
+    letter-spacing: 0.3px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.lpm-title i { color: rgba(180, 160, 140, 0.7); }
+
+.lpm-close {
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.35);
+    font-size: 20px;
+    line-height: 1;
+    padding: 4px 6px;
+    transition: color 0.15s;
+}
+.lpm-close:hover { color: rgba(255, 255, 255, 0.8); }
+
+.lpm-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.lpm-rail {
+    width: 56px;
+    flex-shrink: 0;
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 10px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.lpm-nav-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.4);
+    transition: color 0.15s, background 0.15s;
+    border-left: 2px solid transparent;
+}
+.lpm-nav-item:hover {
+    color: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.03);
+}
+.lpm-nav-item.lpm-nav-active {
+    color: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.06);
+    border-left-color: rgba(180, 160, 140, 0.6);
+}
+.lpm-nav-item i { font-size: 18px; }
+
+.lpm-content {
+    flex: 1;
+    padding: 16px 20px;
+    overflow-y: auto;
+}
+
+.lpm-tab-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+.lpm-tab-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.lpm-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 70%;
+    gap: 10px;
+    color: rgba(255, 255, 255, 0.3);
+    text-align: center;
+}
+.lpm-empty-state i { font-size: 28px; opacity: 0.4; }
+.lpm-empty-state p { margin: 0; font-size: 13px; }
+.lpm-empty-hint { font-size: 12px; opacity: 0.6; }
+
+/* ---- Modal form primitives (used by steps 8-11) ---- */
+
+.lpm-section-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.45);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.lpm-section-label i { font-size: 12px; color: rgba(180, 160, 140, 0.5); }
+
+.lpm-setting-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 6px 0;
+}
+.lpm-setting-item-col {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 6px 0;
+}
+.lpm-setting-title { font-size: 13px; color: rgba(255, 255, 255, 0.8); font-weight: 500; }
+.lpm-setting-desc { font-size: 11px; color: rgba(255, 255, 255, 0.35); margin-top: 1px; }
+
+.lpm-divider {
+    border: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    margin: 14px 0;
+}
+
+.lpm-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    transition: background 0.15s, color 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+}
+.lpm-btn-accent {
+    background: rgba(180, 160, 140, 0.2);
+    color: rgba(255, 255, 255, 0.75);
+    border: 1px solid rgba(180, 160, 140, 0.25);
+}
+.lpm-btn-accent:hover { background: rgba(180, 160, 140, 0.3); color: rgba(255, 255, 255, 0.9); }
+.lpm-btn-ghost { background: none; color: rgba(255, 255, 255, 0.45); }
+.lpm-btn-ghost:hover { color: rgba(255, 255, 255, 0.75); background: rgba(255, 255, 255, 0.04); }
+
+.lpm-btn-icon {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.25);
+    cursor: pointer;
+    padding: 3px 5px;
+    font-size: 12px;
+    transition: color 0.15s;
+}
+.lpm-btn-icon:hover { color: rgba(255, 255, 255, 0.7); }
+
+.lpm-modal input[type='checkbox'] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 1.25em;
+    height: 1.25em;
+    border-radius: 4px;
+    background-color: var(--SmartThemeBlurTintColor, rgba(0, 0, 0, 0.2));
+    border: 2px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.2));
+    display: grid;
+    place-content: center;
+    margin: 0;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
+}
+.lpm-modal input[type='checkbox']:active { transform: scale(0.92); }
+.lpm-modal input[type='checkbox']:checked {
+    background-color: var(--SmartThemeQuoteColor, rgba(180, 160, 140, 0.9));
+}
+
+.lpm-select,
+.lpm-input-num {
+    padding: 5px 8px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+}
+.lpm-input-num { width: 60px; text-align: center; cursor: text; }
+.lpm-select:focus,
+.lpm-input-num:focus { outline: none; border-color: rgba(180, 160, 140, 0.4); }
+.lpm-select option { background: rgb(25, 25, 30); color: rgba(255, 255, 255, 0.85); }
+
+/* ---- Step 8 additions: text input, field label, info block ---- */
+
+.lpm-input-text {
+    padding: 5px 8px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 12px;
+    font-family: inherit;
+}
+.lpm-input-text:focus { outline: none; border-color: rgba(180, 160, 140, 0.4); }
+
+.lpm-setting-item-col .lpm-input-text {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.lpm-field-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    display: block;
+}
+
+.lpm-info-block {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    line-height: 1.7;
+}
+.lpm-info-block strong { color: rgba(220, 180, 140, 0.85); font-weight: 600; }
+
+
+/* ============================================================
+   Tag filter picker — sidebar (step 9)
+   ============================================================ */
+
+.lp-tag-picker-host { display: block; }
+
+.lp-tag-picker {
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    padding: 0.55em 0.7em;
+    border: 1px solid var(--lp-border-soft);
+    border-radius: var(--lp-radius-md, 6px);
+    color: var(--lp-text-secondary);
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.lp-tag-picker:hover {
+    background: var(--lp-border-soft);
+    border-color: var(--lp-border-strong);
+    color: var(--lp-text-primary);
+}
+.lp-tag-picker-icon { color: var(--lp-text-tertiary); flex-shrink: 0; }
+.lp-tag-picker-label {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.95em;
+}
+.lp-tag-caret { color: var(--lp-text-tertiary); flex-shrink: 0; }
+
+/* Tag menu (appended to <body> for Popper positioning) */
+#lpTagMenu {
+    z-index: 10000;
+    background: var(--lp-menu-bg, rgba(10, 10, 14, 0.7));
+    backdrop-filter: blur(var(--lp-sidebar-blur, 12px));
+    -webkit-backdrop-filter: blur(var(--lp-sidebar-blur, 12px));
+    border: 1px solid var(--lp-border-soft);
+    border-radius: var(--lp-radius-md, 6px);
+    padding: 0.3em;
+    min-width: 180px;
+    max-height: 50vh;
+    overflow-y: auto;
+}
+#lpTagMenu ul.lp-tag-menu-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1em;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.lp-tag-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    padding: 0.5em 0.6em;
+    border-radius: var(--lp-radius-md, 6px);
+    color: var(--lp-text-secondary);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+.lp-tag-menu-item:hover {
+    background: var(--lp-border-soft);
+    color: var(--lp-text-primary);
+}
+.lp-tag-menu-item.selected { color: var(--lp-text-primary); }
+.lp-tag-menu-name {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.95em;
+}
+.lp-tag-menu-item .lp-tag-check {
+    color: rgba(220, 180, 140, 0.9);
+    font-size: 0.85em;
+    opacity: 0;
+    flex-shrink: 0;
+}
+.lp-tag-menu-item.selected .lp-tag-check { opacity: 1; }
+
+.lp-tag-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.lp-tag-dot-empty { background: transparent; border-style: dashed; }
+
+/* ============================================================
+   Tags modal tab (step 9)
+   ============================================================ */
+
+.lpm-tag-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 320px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+.lpm-tag-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 0;
+}
+.lpm-tag-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+    cursor: pointer;
+}
+.lpm-tag-name {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.8);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.lpm-tag-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+}
+.lpm-tag-dot-empty { background: transparent; border-style: dashed; }
+.lpm-tag-rename {
+    width: 150px;
+    flex-shrink: 0;
+}
+.lpm-tag-view-select {
+    width: 90px;
+    flex-shrink: 0;
+    font-size: 12px;
+    margin-left: auto;
+}
+
+/* ============================================================
+   Wallpapers modal tab (step 10)
+   ============================================================ */
+
+.lpm-wp-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+}
+.lpm-wp-thumb {
+    width: 64px;
+    height: 40px;
+    flex-shrink: 0;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+.lpm-wp-thumb-none {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.03);
+}
+.lpm-wp-row-main { flex: 1; min-width: 0; }
+.lpm-wp-row-label {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 500;
+}
+.lpm-wp-row-file {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 2px;
+}
+.lpm-wp-name {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.4);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 220px;
+}
+.lpm-wp-none-text { font-style: italic; }
+.lpm-wp-missing {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: rgba(230, 140, 120, 0.9);
+    border: 1px solid rgba(230, 140, 120, 0.4);
+    padding: 1px 5px;
+    flex-shrink: 0;
+}
+.lpm-wp-row-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+/* Wallpaper picker grid */
+.lpm-wp-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 8px;
+}
+.lpm-wp-tile {
+    position: relative;
+    aspect-ratio: 16 / 10;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.1s;
+    overflow: hidden;
+}
+.lpm-wp-tile:hover {
+    border-color: rgba(180, 160, 140, 0.6);
+    transform: scale(1.02);
+}
+.lpm-wp-tile-active {
+    border-color: rgba(220, 180, 140, 0.95);
+    box-shadow: 0 0 0 1px rgba(220, 180, 140, 0.6) inset;
+}
+.lpm-wp-tile-name {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 3px 6px;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.9);
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.lpm-wp-tile-none {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 11px;
+}
+.lpm-wp-tile-none i { font-size: 16px; }
+.lpm-wp-loading {
+    grid-column: 1 / -1;
+    padding: 24px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.35);
+    font-size: 12px;
+}
+
+
+/* ============================================================
+   View toggle button — top icon bar (step 11)
+   ============================================================ */
+
+.lp-view-toggle {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: none;
+    color: var(--lp-text-tertiary);
+    cursor: pointer;
+    font-size: 1.2em;
+    transition: color 0.2s ease;
+}
+.lp-view-toggle:hover {
+    color: var(--lp-text-primary);
+}
+
+/* ============================================================
+   Card view — grid layout (step 11)
+   Scoped via .lp-view-card on .lp-cards-area. Sprite view keeps
+   the original flex/bottom-aligned layout via .lp-view-sprite.
+   ============================================================ */
+
+.lp-cards-area.lp-view-card {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 180px));
+    grid-template-rows: repeat(2, auto);
+    align-items: start;
+    align-content: start;
+    justify-content: center;
+    gap: 1em;
+    padding: 3.5em 3em 2em; /* extra top so the view toggle doesn't overlap */
+    overflow: hidden;         /* 2 rows max; pagination handles the rest */
+    height: 100vh;
+    box-sizing: border-box;
+}
+
+/* Card-view cards: no bottom bleed, uniform sizing, top-aligned */
+.lp-view-card .lp-character-card {
+    margin: 0;                    /* reset sprite-view per-card margins */
+    transform: none;
+    transform-origin: center center;
+    justify-content: flex-start;
+    width: 100%;
+    align-self: auto;             /* reset sprite-view avatar align-self: center */
+}
+.lp-view-card .lp-character-card:hover {
+    transform: scale(1.03);
+}
+
+.lp-view-card .lp-card-avatar {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 3 / 4;
+    overflow: hidden;             /* reset sprite overflow: visible */
+    border-radius: var(--lp-radius-md, 6px);
+}
+
+.lp-view-card .lp-card-name {
+    position: relative;
+    bottom: auto;
+    left: auto;
+    transform: none;
+    text-align: center;
+    padding: 0.4em 0.3em 0.2em;
+    font-size: 0.95em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    text-shadow: none;
+    color: var(--lp-text-primary);
+}
+
+/* Pagination arrows in card view: fixed so they aren't clipped by overflow:hidden */
+.lp-view-card .lp-page-arrow { position: fixed; }
+.lp-view-card .lp-page-arrow-left  { left: calc(var(--lp-sidebar-width, 250px) + 1em); }
+.lp-view-card .lp-page-arrow-right { right: 1em; }
+
+
+/* ============================================================
+   New chat button — sidebar action area (step 12)
+   Option B: quiet, matches the custom-button menu language, with
+   an always-on accent icon. Sits beside the settings cog.
+   ============================================================ */
+
+.lp-new-chat {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.7em;
+    padding: 0.55em 0.7em;
+    border-radius: var(--lp-radius-md, 6px);
+    color: var(--lp-text-secondary);
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+.lp-new-chat:hover {
+    background: var(--lp-border-soft);
+    color: var(--lp-text-primary);
+}
+.lp-new-chat i {
+    width: 1.1em;
+    text-align: center;
+    flex-shrink: 0;
+    color: rgba(220, 180, 140, 0.9);
+}
+.lp-new-chat span {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.95em;
+}
+
+/* New chat popup (ST native Popup; selects/inputs use .text_pole) */
+.lpm-new-chat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9em;
+    min-width: min(420px, 80vw);
+    text-align: left;
+}
+.lpm-new-chat .lpm-nc-title { margin: 0 0 0.2em; }
+.lpm-nc-field { display: flex; flex-direction: column; gap: 0.3em; }
+.lpm-nc-field label { font-size: 0.85em; opacity: 0.8; }
+.lpm-nc-field .text_pole { width: 100%; box-sizing: border-box; }
+.lpm-nc-footer {
+    display: flex;
+    gap: 0.6em;
+    justify-content: flex-end;
+    margin-top: 0.4em;
+}
+.lpm-nc-footer .menu_button {
+    white-space: nowrap;
+    width: auto;
+    flex: 0 0 auto;
+}
+
+
+/* ============================================================
+   Buttons modal tab (step 13)
+   ============================================================ */
+
+.lpm-btn-empty {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.35);
+    font-style: italic;
+    padding: 10px 0;
+}
+.lpm-btn-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+.lpm-btn-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+.lpm-btn-row-preview {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(220, 180, 140, 0.9);
+    font-size: 14px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    margin-top: 1px;
+}
+.lpm-btn-preview-empty { color: rgba(255, 255, 255, 0.18); }
+.lpm-btn-row-fields {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.lpm-btn-row-fields .lpm-input-text { width: 100%; box-sizing: border-box; }
+.lpm-btn-row-sub { display: flex; gap: 6px; }
+.lpm-btn-row-sub .lpm-btn-f-icon { flex: 1 1 55%; min-width: 0; }
+.lpm-btn-row-sub .lpm-btn-f-cmd  { flex: 1 1 45%; min-width: 0; }
+.lpm-btn-row-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex-shrink: 0;
+}
+.lpm-btn-icon:disabled { opacity: 0.2; cursor: default; }
+.lpm-btn-icon:disabled:hover { color: rgba(255, 255, 255, 0.25); }
+.lpm-btn-del:hover { color: rgba(230, 140, 120, 0.9); }
+.lpm-btn-add-wrap { margin-top: 4px; }
+
+
+/* ============================================================
+   Theme modal tab (step 13)
+   ============================================================ */
+
+.lpm-theme-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.lpm-theme-radio { display: none; }
+.lpm-theme-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+}
+.lpm-theme-row:hover {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+.lpm-theme-row-active {
+    border-color: rgba(220, 180, 140, 0.6);
+    background: rgba(180, 160, 140, 0.08);
+}
+.lpm-theme-name {
+    flex: 1;
+    min-width: 0;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.85);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.lpm-theme-check { color: rgba(220, 180, 140, 0.9); font-size: 12px; flex-shrink: 0; }
+
+/* Preview swatch: theme surfaces composed over a checkerboard so the
+   semi-transparent rgba values read the way they would over a wallpaper. */
+.lpm-theme-swatch {
+    position: relative;
+    width: 56px;
+    height: 36px;
+    flex-shrink: 0;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+    background:
+        repeating-conic-gradient(rgba(255, 255, 255, 0.06) 0% 25%, transparent 0% 50%) 0 / 12px 12px,
+        #2a2a30;
+}
+.lpm-theme-swatch-bg { position: absolute; inset: 0; }
+.lpm-theme-swatch-side {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 38%;
+    border-right: 1px solid rgba(255, 255, 255, 0.18);
+}
+.lpm-theme-swatch-dot {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+
+/* Overlay opacity slider */
+.lpm-overlay-slider-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 4px;
+}
+.lpm-overlay-range {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+}
+.lpm-overlay-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgba(180, 160, 140, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+}
+.lpm-overlay-range::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgba(180, 160, 140, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+}
+.lpm-overlay-value {
+    min-width: 36px;
+    text-align: right;
+    font-size: 0.85em;
+    color: rgba(255, 255, 255, 0.6);
+    font-variant-numeric: tabular-nums;
+}
