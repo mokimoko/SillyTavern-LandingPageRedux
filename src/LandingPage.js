@@ -9,7 +9,7 @@ import { getUserAvatar, getUserAvatars, setUserAvatar, user_avatar } from '../..
 import { power_user } from '../../../../power-user.js';
 import { Popper } from '../../../../../lib.js';
 import { getSettings, setNavigating } from '../index.js';
-import { findExpressions } from './expressions.js';
+import { findExpressions, getCachedExpressionUrl } from './expressions.js';
 import { navigateToChat, runSlashCommand } from './utils.js';
 import { openLandingModal } from './modal.js';
 import { showNewChatModal } from './newChatModal.js';
@@ -41,6 +41,7 @@ export class LandingPage {
         this.lastWindowWidth = 0;
         this.lastCardCount = 0;
         this.cachedCardSizes = null;
+        this.renderGeneration = 0;    // bumped each loadCharacters(); stale upgrades bail
         this.activeBg = 0;            // index (0|1) of the visible background layer
         this.currentBgImage = null;  // last applied wallpaper (skips redundant crossfades)
     }
@@ -53,6 +54,20 @@ export class LandingPage {
             return;
         }
         await this.render();
+    }
+
+    /**
+     * Lift the Nebula Loader handoff cloak, if present. Called the instant the
+     * landing page is painted (when .lp-loaded goes on), so the loader-screen
+     * cloak fades directly into the landing page with no flash of bare ST UI
+     * in between. No-op when nebula-loader isn't installed — the global hook
+     * simply won't exist. Safe to call more than once (the hook is idempotent).
+     */
+    liftNebulaCloak() {
+        try {
+            console.log('[LPR] .lp-loaded set; calling __nebulaLiftCloak (exists=' + (typeof window.__nebulaLiftCloak === 'function') + ')');
+            window.__nebulaLiftCloak?.();
+        } catch (e) { console.log('[LPR] liftNebulaCloak error', e); }
     }
 
     hide() {
@@ -611,6 +626,7 @@ export class LandingPage {
     async loadCharacters() {
         if (this.isLoading) return;
         this.isLoading = true;
+        this.renderGeneration++;
 
         try {
             const cardsArea = this.container.querySelector('.lp-cards-area');
@@ -629,6 +645,7 @@ export class LandingPage {
                 if (this.isFirstRender) {
                     await new Promise(resolve => requestAnimationFrame(resolve));
                     this.container.classList.add('lp-loaded');
+                    this.liftNebulaCloak(); // page painted — fade the loader cloak into it
                 }
                 return;
             }
@@ -648,6 +665,7 @@ export class LandingPage {
                 if (this.isFirstRender) {
                     await new Promise(resolve => requestAnimationFrame(resolve));
                     this.container.classList.add('lp-loaded');
+                    this.liftNebulaCloak(); // page painted — fade the loader cloak into it
                 }
                 return;
             }
@@ -667,78 +685,135 @@ export class LandingPage {
                 cardsArea.style.removeProperty('--lp-card-width');
             }
 
-            // Sprite view: batch-fetch expression sprites
-            let expressionMap = new Map();
-            if (!isCardView && settings.useExpressions) {
-                expressionMap = await findExpressions(chars, settings.expression);
-            }
-
-            // Render cards (placeholders first)
+            // Render cards immediately with card-avatar fallback. We do NOT block
+            // the first paint on expression-sprite lookups — those can take a
+            // while (HEAD probes across multiple extensions) and would delay the
+            // landing page (and the Nebula cloak lift) by seconds.
+            //
+            // Layout class per card (sprite view only):
+            //  • Cache hit (url)  → lp-has-sprite — correct from the start
+            //  • Cache hit (null) → lp-has-card   — confirmed no sprite
+            //  • Cache miss       → lp-has-sprite — optimistic default; downgraded
+            //                        to lp-has-card by upgradeExpressions() if the
+            //                        lookup confirms no sprite exists
+            // In card view, every card uses lp-has-card (always correct).
             cardsArea.innerHTML = '';
             const fragment = document.createDocumentFragment();
             for (const char of chars) {
-                if (isCardView) {
-                    fragment.appendChild(this.createCharacterCard(char, null, false));
-                } else {
-                    const hasExpression = settings.useExpressions && !!expressionMap.get(char.avatar);
-                    fragment.appendChild(this.createCharacterCard(char, null, hasExpression));
+                let hasSprite = false;
+                if (!isCardView) {
+                    const cached = settings.useExpressions
+                        ? getCachedExpressionUrl(char.avatar, settings.expression)
+                        : null;
+                    // undefined = not yet looked up → default to sprite (optimistic)
+                    // string   = has sprite URL     → sprite layout
+                    // null     = confirmed absent   → card layout
+                    hasSprite = cached !== null;
                 }
+                fragment.appendChild(this.createCharacterCard(char, null, hasSprite));
             }
             cardsArea.appendChild(fragment);
 
-            // Fade-in on first render
+            // Fade-in on first render — happens now, before expression lookup.
             if (this.isFirstRender) {
                 await new Promise(resolve => requestAnimationFrame(resolve));
                 this.container.classList.add('lp-loaded');
+                this.liftNebulaCloak(); // page painted — fade the loader cloak into it
             }
 
-            // Progressive image loading
+            // Progressive image loading — start with the card avatar for every
+            // card (always available, fast). In sprite view, upgradeExpressions()
+            // swaps in the real sprite image once the lookup resolves — pure
+            // image swap, no layout change.
             for (const char of chars) {
-                let imgUrl;
-                if (isCardView) {
-                    // Card view: always use the card avatar
-                    imgUrl = `/characters/${char.avatar}`;
-                } else {
-                    // Sprite view: expression if available, else card avatar
-                    imgUrl = `/characters/${char.avatar}`;
-                    if (settings.useExpressions) {
-                        const exprUrl = expressionMap.get(char.avatar);
-                        if (exprUrl) imgUrl = exprUrl;
-                    }
-                }
+                const imgUrl = `/characters/${char.avatar}`;
                 const card = cardsArea.querySelector(`.lp-character-card[data-avatar="${char.avatar}"]`);
                 if (!card) continue;
-
-                const img = new Image();
-                this.loadingImages.push(img);
-                const cleanup = () => {
-                    const idx = this.loadingImages.indexOf(img);
-                    if (idx > -1) this.loadingImages.splice(idx, 1);
-                };
-                img.onload = () => {
-                    const el = card.querySelector('.lp-card-avatar img');
-                    if (el) {
-                        el.src = imgUrl;
-                        el.classList.remove('loading');
-                        el.classList.add('loaded');
-                    }
-                    cleanup();
-                };
-                img.onerror = () => {
-                    const el = card.querySelector('.lp-card-avatar img');
-                    if (el) {
-                        el.src = `/characters/${char.avatar}`;
-                        el.classList.remove('loading');
-                        el.classList.add('loaded');
-                    }
-                    cleanup();
-                };
-                img.src = imgUrl;
+                this.loadCardImage(card, imgUrl, `/characters/${char.avatar}`);
             }
 
             this.updatePaginationArrows(totalChars, numCards);
+
+            // After paint: resolve expression sprites (sprite view only) and
+            // upgrade the cards that have one. Fire-and-forget — never blocks.
+            // Generation counter prevents stale results from a previous render
+            // from clobbering cards that belong to a newer one.
+            if (!isCardView && settings.useExpressions) {
+                this.upgradeExpressions(chars, settings.expression, cardsArea, this.renderGeneration);
+            }
         } finally {
             this.isLoading = false;
+        }
+    }
+
+    /**
+     * Load an image into a card's avatar slot, swapping it in on load. Shared by
+     * the initial avatar pass and the later expression-sprite upgrade. On error,
+     * falls back to fallbackUrl (the plain card avatar).
+     */
+    loadCardImage(card, imgUrl, fallbackUrl) {
+        const img = new Image();
+        this.loadingImages.push(img);
+        const cleanup = () => {
+            const idx = this.loadingImages.indexOf(img);
+            if (idx > -1) this.loadingImages.splice(idx, 1);
+        };
+        img.onload = () => {
+            const el = card.querySelector('.lp-card-avatar img');
+            if (el) {
+                el.src = imgUrl;
+                el.classList.remove('loading');
+                el.classList.add('loaded');
+            }
+            cleanup();
+        };
+        img.onerror = () => {
+            const el = card.querySelector('.lp-card-avatar img');
+            if (el && fallbackUrl && el.src !== fallbackUrl) {
+                el.src = fallbackUrl;
+                el.classList.remove('loading');
+                el.classList.add('loaded');
+            }
+            cleanup();
+        };
+        img.src = imgUrl;
+    }
+
+    /**
+     * Resolve expression sprites after the page has already painted, then
+     * finalize each card's layout class and image:
+     *  • Has sprite → ensure lp-has-sprite, swap in the sprite image
+     *  • No sprite  → downgrade to lp-has-card (proper card-avatar styling)
+     *
+     * On a warm cache the card creation loop already picks the right class,
+     * so this is mostly image swaps. On a cold cache (first load), some cards
+     * will have been optimistically set to lp-has-sprite and get downgraded
+     * here once the lookup confirms no sprite exists.
+     *
+     * Generation counter guards against stale results from a previous render.
+     */
+    async upgradeExpressions(chars, expression, cardsArea, generation) {
+        try {
+            const expressionMap = await findExpressions(chars, expression);
+            if (!this.container || this.renderGeneration !== generation) return;
+            for (const char of chars) {
+                if (this.renderGeneration !== generation) return;
+                const card = cardsArea.querySelector(`.lp-character-card[data-avatar="${char.avatar}"]`);
+                if (!card) continue;
+                const exprUrl = expressionMap.get(char.avatar);
+                if (exprUrl) {
+                    // Has sprite — ensure sprite layout, swap image
+                    card.classList.remove('lp-has-card');
+                    card.classList.add('lp-has-sprite');
+                    this.loadCardImage(card, exprUrl, `/characters/${char.avatar}`);
+                } else {
+                    // No sprite — ensure card-avatar layout
+                    card.classList.remove('lp-has-sprite');
+                    card.classList.add('lp-has-card');
+                }
+            }
+        } catch (err) {
+            console.error('[LPR] expression upgrade failed:', err);
         }
     }
 
