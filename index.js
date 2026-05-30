@@ -166,6 +166,19 @@ eventSource.on(event_types.APP_READY, async () => {
 
     // Initial show: if no chat is open and we're enabled
     if (getContext().chatId === undefined && getSettings().enabled) {
+        // Claim the Nebula Loader cloak BEFORE rendering: our render can take a
+        // while (expression sprite lookups, etc.), and we don't want the cloak's
+        // short failsafe to lift mid-render and expose the bare ST shell. Claiming
+        // cancels that short timer; we lift the cloak ourselves once .lp-loaded is
+        // set. No-op when nebula-loader isn't installed.
+        try { window.__nebulaClaimCloak?.(); } catch { /* */ }
         await onChatChanged(undefined);
+    } else {
+        // No landing page is going to paint (disabled, or a chat is already
+        // open). If the Nebula Loader handoff cloak is up, lift it now so the
+        // real ST UI is revealed immediately instead of waiting out the cloak's
+        // own failsafe timer. No-op when nebula-loader isn't installed.
+        console.log('[LPR] APP_READY, no landing page (enabled=' + getSettings().enabled + ', chatId=' + getContext().chatId + '); lifting cloak');
+        try { window.__nebulaLiftCloak?.(); } catch { /* */ }
     }
 });

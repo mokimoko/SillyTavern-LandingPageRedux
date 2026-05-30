@@ -29,7 +29,7 @@ const DRAWER_HTML = `
                 </select>
             </label>
             <div class="lp-drawer-actions">
-                <button id="lp-open-panel" class="menu_button">
+                <button id="lp-open-panel" class="menu_button" style="width:100%;white-space:nowrap;justify-content:center;">
                     <i class="fa-solid fa-sliders"></i>
                     Open Control Panel
                 </button>
