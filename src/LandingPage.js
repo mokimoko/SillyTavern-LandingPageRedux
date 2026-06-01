@@ -721,15 +721,21 @@ export class LandingPage {
                 this.liftNebulaCloak(); // page painted — fade the loader cloak into it
             }
 
-            // Progressive image loading — start with the card avatar for every
-            // card (always available, fast). In sprite view, upgradeExpressions()
-            // swaps in the real sprite image once the lookup resolves — pure
-            // image swap, no layout change.
+            // Progressive image loading — load the card avatar for cards that
+            // need it. Cards with lp-has-sprite layout are owned by
+            // upgradeExpressions(): it will either swap in the real sprite, or
+            // downgrade to lp-has-card and load the avatar then. Preloading the
+            // avatar here for sprite cards would race with the sprite swap (two
+            // in-flight `new Image()` onloads writing to the same el.src — last
+            // one wins), causing sprites to flicker back to avatars on return
+            // visits when the expression cache is warm and both loads resolve
+            // near-simultaneously.
             for (const char of chars) {
-                const imgUrl = `/characters/${char.avatar}`;
                 const card = cardsArea.querySelector(`.lp-character-card[data-avatar="${char.avatar}"]`);
                 if (!card) continue;
-                this.loadCardImage(card, imgUrl, `/characters/${char.avatar}`);
+                if (card.classList.contains('lp-has-sprite')) continue; // owned by upgradeExpressions
+                const imgUrl = `/characters/${char.avatar}`;
+                this.loadCardImage(card, imgUrl, imgUrl);
             }
 
             this.updatePaginationArrows(totalChars, numCards);
@@ -806,11 +812,18 @@ export class LandingPage {
                     card.classList.remove('lp-has-card');
                     card.classList.add('lp-has-sprite');
                     this.loadCardImage(card, exprUrl, `/characters/${char.avatar}`);
-                } else {
-                    // No sprite — ensure card-avatar layout
+                } else if (card.classList.contains('lp-has-sprite')) {
+                    // Optimistic guess was wrong — no sprite exists. Downgrade
+                    // to card layout AND load the avatar (the initial avatar
+                    // loop skipped this card because it had lp-has-sprite, so
+                    // it's still on the placeholder).
                     card.classList.remove('lp-has-sprite');
                     card.classList.add('lp-has-card');
+                    const imgUrl = `/characters/${char.avatar}`;
+                    this.loadCardImage(card, imgUrl, imgUrl);
                 }
+                // else: card was already lp-has-card and the avatar loop already
+                // loaded its image. Nothing to do.
             }
         } catch (err) {
             console.error('[LPR] expression upgrade failed:', err);
