@@ -7,7 +7,7 @@
 import { saveSettingsDebounced } from '../../../../../script.js';
 import { getSettings } from '../index.js';
 
-const THEMES_URL = '/scripts/extensions/third-party/SillyTavern-LandingPageRedux/themes.json';
+const THEMES_URL = new URL('../themes.json', import.meta.url).pathname;
 
 let loadedThemes = [];
 let initialized = false;

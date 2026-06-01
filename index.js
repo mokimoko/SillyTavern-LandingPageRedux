@@ -13,15 +13,10 @@ import { initSettings } from './src/settings.js';
 import { initTheme } from './src/themeManager.js';
 
 export const MODULE_NAME = 'landingPageRedux';
-const DEBUG = false;
 
 let lp = null;
 let appReady = false;
 let isNavigating = false;
-
-function log(...args) {
-    if (DEBUG) console.log('[LPR]', ...args);
-}
 
 const DEFAULT_SETTINGS = {
     enabled: true,
@@ -72,7 +67,6 @@ async function onChatChanged(chatId) {
 
     if (chatId === undefined && settings.enabled) {
         if (isNavigating) {
-            log('Navigation in progress, skipping landing page show');
             return;
         }
         if (!lp) {
@@ -137,8 +131,6 @@ function toggleLandingPage(args, value) {
 }
 
 async function init() {
-    log('Initializing...');
-
     getSettings(); // ensure populated
 
     // Load themes + apply current
@@ -156,8 +148,6 @@ async function init() {
 
     // Chat-state listener
     eventSource.on(event_types.CHAT_CHANGED, onChatChanged);
-
-    log('Initialized');
 }
 
 eventSource.on(event_types.APP_READY, async () => {
@@ -178,7 +168,6 @@ eventSource.on(event_types.APP_READY, async () => {
         // open). If the Nebula Loader handoff cloak is up, lift it now so the
         // real ST UI is revealed immediately instead of waiting out the cloak's
         // own failsafe timer. No-op when nebula-loader isn't installed.
-        console.log('[LPR] APP_READY, no landing page (enabled=' + getSettings().enabled + ', chatId=' + getContext().chatId + '); lifting cloak');
         try { window.__nebulaLiftCloak?.(); } catch { /* */ }
     }
 });

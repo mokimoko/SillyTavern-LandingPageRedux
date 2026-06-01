@@ -12,12 +12,7 @@ import { executeSlashCommands } from '../../../../slash-commands.js';
 import { getUserAvatars, user_avatar } from '../../../../personas.js';
 import { power_user } from '../../../../power-user.js';
 import { setNavigating } from '../index.js';
-
-function esc(s) {
-    return String(s ?? '')
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
+import { esc } from './utils.js';
 
 /** Hide ST's default popup OK/Cancel row (we supply our own buttons). */
 function hidePopupControls(popup) {

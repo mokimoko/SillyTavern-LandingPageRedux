@@ -277,14 +277,6 @@ body:has(.lp-container.lp-loaded) #top-bar {
     font-size: 0.95em;
 }
 
-.lp-cards-area {
-    position: relative;
-    z-index: 2;
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-}
-
 .lp-top-icon-bar {
     position: absolute;
     top: 1em;
@@ -312,6 +304,11 @@ body:has(.lp-container.lp-loaded) #top-bar {
    ============================================================ */
 
 .lp-cards-area {
+    position: relative;
+    z-index: 2;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
     display: flex;
     flex-direction: row;
     align-items: flex-end; /* sprite view: bottom-aligned */
