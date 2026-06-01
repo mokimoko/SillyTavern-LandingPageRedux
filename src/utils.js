@@ -3,10 +3,13 @@
  */
 import { executeSlashCommands } from '../../../../slash-commands.js';
 
-const DEBUG = false;
-
-export function log(...args) {
-    if (DEBUG) console.log('[LPR]', ...args);
+/**
+ * Escape a string for safe insertion into HTML (innerHTML / attribute values).
+ */
+export function esc(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 /**
@@ -49,28 +52,4 @@ export async function runSlashCommand(command) {
             toastr.error('Command failed', 'Landing Page');
         }
     }
-}
-
-/**
- * Relative-time formatter for the future card view "last chatted" label.
- * Reserved for step 11+.
- */
-export function formatRelativeDate(timestamp) {
-    if (!timestamp) return '';
-    const diff = Date.now() - timestamp;
-    const seconds = Math.floor(diff / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const hours = Math.floor(minutes / 60);
-    const days = Math.floor(hours / 24);
-    const weeks = Math.floor(days / 7);
-    const months = Math.floor(days / 30);
-
-    if (seconds < 60) return 'just now';
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    if (days === 1) return 'yesterday';
-    if (days < 7) return `${days}d ago`;
-    if (weeks < 4) return `${weeks}w ago`;
-    if (months < 12) return `${months}mo ago`;
-    return `${Math.floor(months / 12)}y ago`;
 }

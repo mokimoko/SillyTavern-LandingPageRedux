@@ -10,16 +10,11 @@ import { power_user } from '../../../../power-user.js';
 import { Popper } from '../../../../../lib.js';
 import { getSettings, setNavigating } from '../index.js';
 import { findExpressions, getCachedExpressionUrl } from './expressions.js';
-import { navigateToChat, runSlashCommand } from './utils.js';
+import { navigateToChat, runSlashCommand, esc } from './utils.js';
 import { openLandingModal } from './modal.js';
 import { showNewChatModal } from './newChatModal.js';
 import { getFilteredCharacters, getExposedTags, getTagDisplayName, resolveActiveTagFilter } from './tagFilter.js';
 import { getActiveWallpaper } from './wallpapers.js';
-
-const DEBUG = false;
-function log(...args) {
-    if (DEBUG) console.log('[LPR]', ...args);
-}
 
 export class LandingPage {
     constructor() {
@@ -65,9 +60,8 @@ export class LandingPage {
      */
     liftNebulaCloak() {
         try {
-            console.log('[LPR] .lp-loaded set; calling __nebulaLiftCloak (exists=' + (typeof window.__nebulaLiftCloak === 'function') + ')');
             window.__nebulaLiftCloak?.();
-        } catch (e) { console.log('[LPR] liftNebulaCloak error', e); }
+        } catch { /* */ }
     }
 
     hide() {
@@ -116,8 +110,6 @@ export class LandingPage {
         this.isLoading = false;
         this.isFirstRender = true;
         this.isAnimating = false;
-
-        log('Cleanup complete');
     }
 
     // ---- Persona selector (step 5) ----
@@ -216,9 +208,9 @@ export class LandingPage {
 
         userProfile.innerHTML = `
             <div class="lp-user-avatar">
-                <img src="${imgUrl}" alt="${personaName}" title="${imgTitle}">
+                <img src="${imgUrl}" alt="${esc(personaName)}" title="${esc(imgTitle)}">
             </div>
-            <span class="lp-user-name">${personaName}</span>
+            <span class="lp-user-name">${esc(personaName)}</span>
             <div class="lp-user-caret fa-fw fa-solid fa-caret-down"></div>
         `;
     }
@@ -710,7 +702,7 @@ export class LandingPage {
                     // null     = confirmed absent   → card layout
                     hasSprite = cached !== null;
                 }
-                fragment.appendChild(this.createCharacterCard(char, null, hasSprite));
+                fragment.appendChild(this.createCharacterCard(char, hasSprite));
             }
             cardsArea.appendChild(fragment);
 
@@ -906,7 +898,7 @@ export class LandingPage {
         }
     }
 
-    createCharacterCard(char, imgUrl, hasExpression = false) {
+    createCharacterCard(char, hasExpression = false) {
         const card = document.createElement('div');
         card.className = 'lp-character-card';
         card.classList.add(hasExpression ? 'lp-has-sprite' : 'lp-has-card');
@@ -916,13 +908,11 @@ export class LandingPage {
         const hideNames = settings.hideNames || false;
 
         const placeholder = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23333" width="100" height="100"/%3E%3C/svg%3E';
-        const src = imgUrl || placeholder;
-        const cssClass = imgUrl ? 'loaded' : 'loading';
-        const nameHTML = hideNames ? '' : `<div class="lp-card-name">${char.name}</div>`;
+        const nameHTML = hideNames ? '' : `<div class="lp-card-name">${esc(char.name)}</div>`;
 
         card.innerHTML = `
             <div class="lp-card-avatar">
-                <img src="${src}" alt="${char.name}" class="${cssClass}">
+                <img src="${placeholder}" alt="${esc(char.name)}" class="loading">
             </div>
             ${nameHTML}
         `;

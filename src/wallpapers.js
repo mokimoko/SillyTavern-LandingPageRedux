@@ -9,7 +9,7 @@
  * way ST does: getBackgroundPath(file) → `backgrounds/<encoded>`, wrapped in
  * url("..."). Only the bare filename is persisted in our settings.
  */
-import { getRequestHeaders, saveSettingsDebounced } from '../../../../../script.js';
+import { getRequestHeaders, getThumbnailUrl, saveSettingsDebounced } from '../../../../../script.js';
 import { getBackgroundPath } from '../../../../backgrounds.js';
 import { getSettings } from '../index.js';
 
@@ -20,6 +20,13 @@ let cachedBackgrounds = null;
 export function wallpaperCssUrl(filename) {
     if (!filename) return '';
     return `url("${getBackgroundPath(filename)}")`;
+}
+
+/** CSS background-image value using ST's server-generated thumbnail. Use for
+ *  previews in the control panel; much smaller than the full-res image. */
+export function wallpaperThumbUrl(filename) {
+    if (!filename) return '';
+    return `url("${getThumbnailUrl('bg', filename)}")`;
 }
 
 /**

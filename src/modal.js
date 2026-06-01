@@ -14,15 +14,13 @@
 import { saveSettingsDebounced } from '../../../../../script.js';
 import { getSettings, getLandingPage } from '../index.js';
 import { clearExpressionCache } from './expressions.js';
+import { esc } from './utils.js';
 import { getAllTags, getExposedTags, getTagDisplayName } from './tagFilter.js';
 import {
-    getAvailableBackgrounds, wallpaperCssUrl, backgroundExists,
+    getAvailableBackgrounds, wallpaperThumbUrl, backgroundExists,
     setGlobalWallpaper, clearGlobalWallpaper, setTagWallpaper, clearTagWallpaper,
 } from './wallpapers.js';
 import { getThemes, getCurrentTheme, setCurrentTheme, setOverlayOpacity } from './themeManager.js';
-
-const DEBUG = false;
-const log = (...a) => { if (DEBUG) console.log('[LPR Modal]', ...a); };
 
 let isOpen = false;
 let activeTab = 'general';
@@ -65,7 +63,6 @@ export function openLandingModal(tab = null) {
         document.getElementById(OVERLAY_ID)?.classList.add('lpm-visible');
         document.getElementById(MODAL_ID)?.classList.add('lpm-visible');
     });
-    log('opened');
 }
 
 export function closeLandingModal() {
@@ -75,7 +72,6 @@ export function closeLandingModal() {
     isOpen = false;
     wpPickerTarget = null; // reset wallpaper picker so next open is fresh
     wpSearch = '';
-    log('closed');
 }
 
 export function isLandingModalOpen() {
@@ -158,10 +154,6 @@ function renderContent() {
 // ============================================================
 // Shared helpers
 // ============================================================
-
-const esc = (v) => String(v ?? '')
-    .replace(/&/g, '&amp;').replace(/"/g, '&quot;')
-    .replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 /**
  * Re-render the live landing page after a setting change. Pass
@@ -335,21 +327,6 @@ function wireDisplayEvents(container) {
         saveSettingsDebounced();
         refreshLanding({ expressions: true });
     });
-}
-
-// ============================================================
-// Tabs — remaining placeholders (filled in later steps)
-// ============================================================
-
-function placeholder(container, title, icon, note) {
-    container.innerHTML = `
-        <div class="lpm-tab-header"><span class="lpm-tab-title">${title}</span></div>
-        <div class="lpm-empty-state">
-            <i class="fa-solid ${icon}"></i>
-            <p>${note}</p>
-            <span class="lpm-empty-hint">Controls arrive in a later step.</span>
-        </div>
-    `;
 }
 
 // ============================================================
@@ -531,7 +508,7 @@ function renderWallpapersTab(container) {
 function wpAssignmentRow(target, label, file) {
     const missing = file && !backgroundExists(file);
     const thumb = file
-        ? `<div class="lpm-wp-thumb" style="background-image:${esc(wallpaperCssUrl(file))}"></div>`
+        ? `<div class="lpm-wp-thumb" style="background-image:${esc(wallpaperThumbUrl(file))}"></div>`
         : '<div class="lpm-wp-thumb lpm-wp-thumb-none"><i class="fa-regular fa-image"></i></div>';
     const name = file
         ? `<span class="lpm-wp-name" title="${esc(file)}">${esc(file)}</span>`
@@ -632,7 +609,7 @@ async function populateWpGrid() {
             <i class="fa-regular fa-image"></i><span>None</span>
         </div>`;
     const tiles = list.map(f => `
-        <div class="lpm-wp-tile ${f === current ? 'lpm-wp-tile-active' : ''}" data-file="${esc(f)}" title="${esc(f)}" style="background-image:${esc(wallpaperCssUrl(f))}">
+        <div class="lpm-wp-tile ${f === current ? 'lpm-wp-tile-active' : ''}" data-file="${esc(f)}" title="${esc(f)}" style="background-image:${esc(wallpaperThumbUrl(f))}">
             <span class="lpm-wp-tile-name">${esc(f)}</span>
         </div>`).join('');
 
