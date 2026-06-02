@@ -1061,9 +1061,9 @@ body:has(.lp-container.lp-loaded) #top-bar {
 .lp-cards-area.lp-view-card {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 180px));
-    grid-template-rows: repeat(2, auto);
+    grid-auto-rows: max-content;
     align-items: start;
-    align-content: start;
+    align-content: center;
     justify-content: center;
     gap: 1em;
     padding: 3.5em 3em 2em; /* extra top so the view toggle doesn't overlap */
