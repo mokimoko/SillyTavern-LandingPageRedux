@@ -5,8 +5,8 @@
   "optional": [],
   "js": "index.js",
   "css": "style.css",
-  "author": "nrahis",
+  "author": "mokimoko",
   "version": "0.1.0",
-  "homePage": "https://github.com/nrahis/SillyTavern-LandingPageRedux",
+  "homePage": "https://github.com/mokimoko/SillyTavern-LandingPageRedux",
   "auto_update": false
 }
