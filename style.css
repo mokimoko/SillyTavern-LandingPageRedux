@@ -48,7 +48,18 @@
    (#top-bar sits at z-index 3005; we also cover it via the container's
    z-index, but hiding it avoids it bleeding through the translucent theme.) */
 body:has(.lp-container.lp-loaded) #sheld,
-body:has(.lp-container.lp-loaded) #top-bar {
+body:has(.lp-container.lp-loaded) #top-bar,
+body:has(.lp-container.lp-loaded) #top-settings-holder {
+    display: none !important;
+}
+
+/* Hide UI Bedazzler's body-level floating UI while the landing page is up.
+   These get appended directly to <body> (siblings of .lp-container), so the
+   #top-bar / #sheld hide rules above don't catch them — they bleed through
+   the translucent theme on their own z-index. #bd-side-buttons is the side
+   strip; .bd-side-btn covers any stragglers if the container id ever changes. */
+body:has(.lp-container.lp-loaded) #bd-side-buttons,
+body:has(.lp-container.lp-loaded) .bd-side-btn {
     display: none !important;
 }
 
