@@ -35,4 +35,5 @@ Use SillyTavern's built-in extension installer:
 
 ## Credits
 
-Inspired by the original [Landing Page](https://github.com/LenAnderson/SillyTavern-LandingPage/) extension by Lenny.
+- [Landing Page](https://github.com/LenAnderson/SillyTavern-LandingPage/)
+- [Quick Persona](https://github.com/SillyTavern/Extension-QuickPersona)
