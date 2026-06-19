@@ -253,6 +253,16 @@ function renderDisplayTab(container) {
             </div>
             <input type="number" class="lpm-input-num" id="lpm-card-num" value="${s.cardNumCards || 10}" min="4" max="50" step="1">
         </div>
+        <div class="lpm-setting-item">
+            <div class="lpm-setting-info">
+                <div class="lpm-setting-title">Avatar / Sprite size</div>
+                <div class="lpm-setting-desc">Scale character images up or down. Lower values help at 100% browser zoom.</div>
+            </div>
+            <div class="lpm-overlay-slider-row" style="flex:0 0 auto;gap:8px;">
+                <input type="range" min="50" max="150" step="5" value="${s.avatarScale ?? 100}" class="lpm-overlay-range" id="lpm-avatar-scale" style="width:120px;">
+                <span class="lpm-overlay-value" id="lpm-avatar-scale-value">${s.avatarScale ?? 100}%</span>
+            </div>
+        </div>
 
         <div class="lpm-divider"></div>
 
@@ -301,6 +311,22 @@ function wireDisplayEvents(container) {
         const lp = getLandingPage();
         if (lp?.currentView === 'card') lp.loadCharacters?.();
     });
+
+    const scaleSlider = $('#lpm-avatar-scale');
+    const scaleLabel = $('#lpm-avatar-scale-value');
+    if (scaleSlider) {
+        scaleSlider.addEventListener('input', () => {
+            const val = Number(scaleSlider.value);
+            scaleLabel.textContent = `${val}%`;
+            s.avatarScale = val;
+            saveSettingsDebounced();
+            const lp = getLandingPage();
+            if (lp) {
+                lp.cachedCardSizes = null;
+                lp.loadCharacters?.();
+            }
+        });
+    }
 
     $('#lpm-use-expr')?.addEventListener('change', (e) => {
         s.useExpressions = e.target.checked;
