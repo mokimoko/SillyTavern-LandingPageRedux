@@ -672,7 +672,11 @@ export class LandingPage {
                 const { cardHeight, cardWidth } = this.calculateCardSizes(chars.length);
                 cardsArea.style.setProperty('--lp-card-height', `${cardHeight}px`);
                 cardsArea.style.setProperty('--lp-card-width', `${cardWidth}px`);
+                cardsArea.style.removeProperty('--lp-card-grid-max');
             } else {
+                const scale = (settings.avatarScale ?? 100) / 100;
+                const gridMax = Math.round(180 * scale);
+                cardsArea.style.setProperty('--lp-card-grid-max', `${gridMax}px`);
                 cardsArea.style.removeProperty('--lp-card-height');
                 cardsArea.style.removeProperty('--lp-card-width');
             }
@@ -841,7 +845,8 @@ export class LandingPage {
 
         // Base height comes from a CSS var so it's tweakable (live in devtools, or via theme)
         const baseHeightVar = parseInt(rootStyle.getPropertyValue('--lp-card-base-height'));
-        const baseHeight = baseHeightVar || 450;
+        const scale = (getSettings().avatarScale ?? 100) / 100;
+        const baseHeight = (baseHeightVar || 450) * scale;
         const idealCardCount = 4;
         const idealCardWidth = (availableWidth - ((idealCardCount - 1) * gapSize)) / idealCardCount;
 
@@ -950,15 +955,27 @@ export class LandingPage {
             //  • Sprite view (sprite) — keep the figure grounded: pin the bottom
             //    where it already sits and grow upward (cowboy-shot feel).
             //  • Sprite view (avatar fallback) — centered like card-view, fly + scale.
+            // The sprite target height is a fraction of the viewport that scales
+            // with avatarScale, so shrinking the sprites shrinks the zoom too.
             let targetTransform;
             const isSpriteImage = card.classList.contains('lp-has-sprite');
+            const avatarScale = (getSettings().avatarScale ?? 100) / 100;
             if (!isCardView && isSpriteImage) {
                 clone.style.transformOrigin = 'bottom center';
-                const scaleFactor = Math.min(1.6, (window.innerHeight * 0.95) / startRect.height);
+                // Measure the actual rendered sprite image, not the (overflowing)
+                // box — for object-fit:contain the img can be taller than its
+                // container, and getBoundingClientRect on the box understates it.
+                const imgEl = card.querySelector('.lp-card-avatar img');
+                const imgRect = imgEl ? imgEl.getBoundingClientRect() : startRect;
+                const spriteHeight = imgRect.height || startRect.height;
+                // Target on-screen height scales with avatarScale (0.95 of the
+                // viewport at 100%, proportionally less when scaled down).
+                const targetHeight = window.innerHeight * 0.95 * avatarScale;
+                const scaleFactor = Math.min(2.0, targetHeight / spriteHeight);
                 targetTransform = `translateX(${translateX}px) scale(${scaleFactor})`;
             } else {
                 clone.style.transformOrigin = 'center center';
-                const scaleFactor = Math.min(1.5, (window.innerHeight * 0.9) / startRect.height);
+                const scaleFactor = Math.min(1.5 * avatarScale, (window.innerHeight * 0.9) / startRect.height);
                 const startCenterY = startRect.top + startRect.height / 2;
                 const translateY = (window.innerHeight / 2) - startCenterY;
                 targetTransform = `translate(${translateX}px, ${translateY}px) scale(${scaleFactor})`;

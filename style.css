@@ -421,14 +421,16 @@ body:has(.lp-container.lp-loaded) .bd-side-btn {
     max-width: none;
 }
 
-/* Avatar fallbacks: wider spacing, partial bottom crop, framed portrait */
+/* Avatar fallbacks: wider spacing, partial bottom crop, framed portrait.
+   Bottom-aligned via the parent's align-items:flex-end so the cards stay
+   pinned near the bottom regardless of avatarScale. translateY creates the
+   partial bleed (percentage of the card's own height → scale-independent). */
 .lp-has-card {
     margin: 0 0.5em;
-    transform: translateY(40%);   /* shift down from centered start for partial bleed */
-    align-self: center;           /* start centered; translateY does the rest */
+    transform: translateY(5%);    /* 5% of card bleeds below the viewport */
 }
 .lp-has-card:hover {
-    transform: translateY(33%);   /* subtle lift from resting position */
+    transform: translateY(-2%);   /* subtle lift from resting position */
 }
 /* Avatar box keeps base defaults: aspect-ratio 3:4, cover, border-radius, overflow hidden */
 
@@ -1071,7 +1073,7 @@ body:has(.lp-container.lp-loaded) .bd-side-btn {
 
 .lp-cards-area.lp-view-card {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 180px));
+    grid-template-columns: repeat(5, minmax(0, var(--lp-card-grid-max, 180px)));
     grid-auto-rows: max-content;
     align-items: start;
     align-content: center;

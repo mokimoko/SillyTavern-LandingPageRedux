@@ -36,6 +36,7 @@ const DEFAULT_SETTINGS = {
     currentTheme: 'glass',
     overlayOpacity: 35,
     userThemes: [],
+    avatarScale: 100,
 };
 
 export function getSettings() {
