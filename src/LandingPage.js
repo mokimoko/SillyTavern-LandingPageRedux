@@ -9,7 +9,7 @@ import { getUserAvatar, getUserAvatars, setUserAvatar, user_avatar } from '../..
 import { power_user } from '../../../../power-user.js';
 import { Popper } from '../../../../../lib.js';
 import { getSettings, setNavigating } from '../index.js';
-import { findExpressions, getCachedExpressionUrl } from './expressions.js';
+import { findExpressions, getCachedExpressionUrl, forgetNegatives } from './expressions.js';
 import { navigateToChat, runSlashCommand, esc } from './utils.js';
 import { openLandingModal } from './modal.js';
 import { showNewChatModal } from './newChatModal.js';
@@ -62,6 +62,55 @@ export class LandingPage {
         try {
             window.__nebulaLiftCloak?.();
         } catch { /* */ }
+    }
+
+    /**
+     * Lift the Nebula cloak once the card images that are already in flight
+     * have settled — so the cloak covers the avatar pop-in instead of lifting
+     * on the bare (imageless) layout and letting cards populate in view.
+     *
+     * Only waits on the images loading AT CALL TIME: the initial avatar pass.
+     * The later expression-sprite upgrade (upgradeExpressions) is deliberately
+     * fire-and-forget and can take seconds — those loaders are NOT awaited, so
+     * sprites still swap in underneath the already-revealed page, exactly as
+     * before. A per-image timeout guarantees the lift never stalls on a slow or
+     * hung avatar (the Nebula hard-stop is the final backstop regardless).
+     *
+     * @param {number} perImageTimeoutMs max wait per in-flight image
+     * @param {number} overallTimeoutMs   absolute cap across all images
+     */
+    async liftNebulaCloakWhenReady(perImageTimeoutMs = 1200, overallTimeoutMs = 2500) {
+        // Snapshot the loaders in flight right now — the avatar pass. Anything
+        // added later (sprite upgrades) is intentionally excluded.
+        const pending = this.loadingImages.slice();
+
+        if (pending.length === 0) {
+            this.liftNebulaCloak();
+            return;
+        }
+
+        const settle = (img) => new Promise((resolve) => {
+            // Already done (complete + has dimensions, or errored to a state
+            // where complete is true) — resolve immediately.
+            if (img.complete) { resolve(); return; }
+            let done = false;
+            const finish = () => { if (!done) { done = true; resolve(); } };
+            img.addEventListener('load', finish, { once: true });
+            img.addEventListener('error', finish, { once: true });
+            // Per-image safety net so one slow avatar can't hold the cloak.
+            setTimeout(finish, perImageTimeoutMs);
+        });
+
+        const all = Promise.all(pending.map(settle));
+        const cap = new Promise((resolve) => setTimeout(resolve, overallTimeoutMs));
+
+        // Whichever comes first: every image settled, or the overall cap.
+        await Promise.race([all, cap]);
+
+        // One more frame so the freshly-swapped avatars actually paint under
+        // the cloak before it starts fading.
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+        this.liftNebulaCloak();
     }
 
     hide() {
@@ -278,7 +327,17 @@ export class LandingPage {
             item.find('.lp-tag-menu-name').text(opt.name);
             item.on('click', () => {
                 this.closeTagSelector();
-                this.selectTagFilter(opt.id || null);
+                // Re-selecting the tag that's ALREADY active is a dead action
+                // for filtering (same set), so we repurpose it as a deliberate
+                // "rescan sprites for this view" gesture — the convenient way to
+                // pick up sprite files added since the negatives were cached.
+                // Selecting a DIFFERENT tag filters as normal (cache preserved).
+                const clicked = opt.id || null;
+                if (clicked === (this.currentTagFilter || null)) {
+                    this.rescanVisibleSprites();
+                } else {
+                    this.selectTagFilter(clicked);
+                }
             });
             list.append(item);
         }
@@ -329,6 +388,31 @@ export class LandingPage {
             this.updateViewToggle();
         }
 
+        this.loadCharacters();
+    }
+
+    /**
+     * Rescan expression sprites for the characters currently in view — the
+     * "re-select the active tag" gesture. Forgets the cached NEGATIVES for just
+     * this filtered set (so a character that gained sprite files since the last
+     * probe gets re-checked) and reloads, which re-runs the sprite upgrade.
+     * Scoped to the visible set on purpose: it won't disturb negatives for
+     * characters under other tags, so it's cheap and won't trigger a full-
+     * library re-probe. No-op-safe when expressions are disabled.
+     */
+    rescanVisibleSprites() {
+        const settings = getSettings();
+        if (!settings.useExpressions) {
+            // Nothing to rescan; just reload for consistency (cheap).
+            this.loadCharacters();
+            return;
+        }
+        const chars = getFilteredCharacters(this.currentTagFilter);
+        const avatars = chars.map(c => c.avatar);
+        forgetNegatives(avatars, settings.expression);
+        if (typeof toastr !== 'undefined') {
+            toastr.info(`Rescanning sprites for ${avatars.length} character${avatars.length === 1 ? '' : 's'}…`, 'Landing Page', { timeOut: 1500 });
+        }
         this.loadCharacters();
     }
 
@@ -710,13 +794,6 @@ export class LandingPage {
             }
             cardsArea.appendChild(fragment);
 
-            // Fade-in on first render — happens now, before expression lookup.
-            if (this.isFirstRender) {
-                await new Promise(resolve => requestAnimationFrame(resolve));
-                this.container.classList.add('lp-loaded');
-                this.liftNebulaCloak(); // page painted — fade the loader cloak into it
-            }
-
             // Progressive image loading — load the card avatar for cards that
             // need it. Cards with lp-has-sprite layout are owned by
             // upgradeExpressions(): it will either swap in the real sprite, or
@@ -726,12 +803,26 @@ export class LandingPage {
             // one wins), causing sprites to flicker back to avatars on return
             // visits when the expression cache is warm and both loads resolve
             // near-simultaneously.
+            //
+            // NOTE: this runs BEFORE the cloak lift below so the avatar loaders
+            // are in flight (tracked in this.loadingImages) when the ready-aware
+            // lift snapshots them — letting the cloak cover the avatar pop-in.
             for (const char of chars) {
                 const card = cardsArea.querySelector(`.lp-character-card[data-avatar="${char.avatar}"]`);
                 if (!card) continue;
                 if (card.classList.contains('lp-has-sprite')) continue; // owned by upgradeExpressions
                 const imgUrl = `/characters/${char.avatar}`;
                 this.loadCardImage(card, imgUrl, imgUrl);
+            }
+
+            // Fade-in on first render — set the container's own fade class now,
+            // then lift the Nebula cloak only once the avatar images queued
+            // above have settled (see liftNebulaCloakWhenReady). Sprite upgrades
+            // fire later and are intentionally not awaited.
+            if (this.isFirstRender) {
+                await new Promise(resolve => requestAnimationFrame(resolve));
+                this.container.classList.add('lp-loaded');
+                this.liftNebulaCloakWhenReady(); // fire-and-forget; waits internally
             }
 
             this.updatePaginationArrows(totalChars, numCards);
