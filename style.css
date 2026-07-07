@@ -25,6 +25,58 @@
     --lp-card-base-height: 450px;
 }
 
+/* ============================================================
+   Control-panel modal (.lpm-*) — theme-adaptive token layer.
+   Converted from a fixed dark palette to --SmartTheme*-derived tokens
+   so the modal reads correctly on BOTH light and dark ST themes.
+   The landing page surface itself (.lp-*) keeps its own theme picker.
+
+   Families:
+   - surface:  frosted theme tint (SmartThemeBlurTintColor)
+   - text:     3 tiers, color-mix on SmartThemeBodyColor
+   - accent:   SmartThemeQuoteColor (matches the rest of the suite)
+   - hairline: body-color at low alpha (tracks theme hue)
+   - sink:     low-alpha BLACK recess — always darkens (never a body mix,
+               which would invert direction between light/dark)
+   - scrim:    dark backdrop dimmer (stays dark on both themes)
+   - danger:   semantic red, stays literal (defined inline, not tokenised)
+   ============================================================ */
+:root {
+    /* Surfaces */
+    --lpm-surface:        color-mix(in srgb, var(--SmartThemeBlurTintColor) 88%, var(--SmartThemeBodyColor) 4%);
+    --lpm-surface-solid:  color-mix(in srgb, var(--SmartThemeBlurTintColor) 97%, var(--SmartThemeBodyColor) 6%);
+    --lpm-surface-menu:   color-mix(in srgb, var(--SmartThemeBlurTintColor) 82%, transparent);
+
+    /* Text tiers (color-mix on body color so muting works in both directions) */
+    --lpm-text:       color-mix(in srgb, var(--SmartThemeBodyColor) 85%, transparent);
+    --lpm-text-2:     color-mix(in srgb, var(--SmartThemeBodyColor) 62%, transparent);
+    --lpm-text-3:     color-mix(in srgb, var(--SmartThemeBodyColor) 40%, transparent);
+    --lpm-text-faint: color-mix(in srgb, var(--SmartThemeBodyColor) 28%, transparent);
+
+    /* Hairlines + washes (body-color hue at low alpha) */
+    --lpm-line:       color-mix(in srgb, var(--SmartThemeBodyColor) 12%, transparent);
+    --lpm-line-soft:  color-mix(in srgb, var(--SmartThemeBodyColor) 6%, transparent);
+    --lpm-wash:       color-mix(in srgb, var(--SmartThemeBodyColor) 4%, transparent);
+    --lpm-wash-hover: color-mix(in srgb, var(--SmartThemeBodyColor) 8%, transparent);
+
+    /* Accent (SmartThemeQuoteColor — LP modal has no separate identity) */
+    --lpm-accent:      var(--SmartThemeQuoteColor);
+    --lpm-accent-soft: color-mix(in srgb, var(--SmartThemeQuoteColor) 60%, transparent);
+    --lpm-accent-line: color-mix(in srgb, var(--SmartThemeQuoteColor) 40%, transparent);
+    --lpm-accent-bg:   color-mix(in srgb, var(--SmartThemeQuoteColor) 20%, transparent);
+    --lpm-accent-bg-hover: color-mix(in srgb, var(--SmartThemeQuoteColor) 30%, transparent);
+
+    /* Sink (recess) + scrim (backdrop) — direction-stable darks */
+    --lpm-sink:       rgba(0, 0, 0, 0.18);
+    --lpm-sink-soft:  rgba(0, 0, 0, 0.15);
+    --lpm-scrim:      rgba(0, 0, 0, 0.55);
+    --lpm-tile-label: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+
+    /* Danger (semantic — stays fixed hue) */
+    --lpm-danger:      rgba(230, 140, 120, 0.9);
+    --lpm-danger-line: rgba(230, 140, 120, 0.4);
+}
+
 .lp-container {
     position: fixed;
     inset: 0;
@@ -202,6 +254,16 @@ body:has(.lp-container.lp-loaded) .bd-side-btn {
     padding: 0;
     list-style: none;
     max-width: 264px;
+    /* ST core styles bare `.list-group` with the theme tint + blur + border.
+       The dark #lpPersonaMenu panel is meant to show through, so neutralise
+       ST's surface here and let the panel provide the background. */
+    background-color: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
 }
 
 #lpPersonaMenu .list-group-item {
@@ -209,7 +271,8 @@ body:has(.lp-container.lp-loaded) .bd-side-btn {
     flex: 0 0 auto;
     padding: 0.2em;
     border: none;
-    background: transparent;
+    background: transparent !important;
+    color: var(--lp-text-primary, rgba(255, 255, 255, 0.9)) !important;
     border-radius: var(--lp-radius-md, 6px);
     cursor: pointer;
 }
@@ -444,7 +507,7 @@ body:has(.lp-container.lp-loaded) .bd-side-btn {
     border-radius: 0;
     border: none;
     background: none;
-    color: var(--lp-text-tertiary);
+    color: var(--lp-text-tertiary, rgba(255, 255, 255, 0.4));
     cursor: pointer;
     z-index: 4;
     display: flex;
@@ -455,8 +518,30 @@ body:has(.lp-container.lp-loaded) .bd-side-btn {
 }
 
 .lp-page-arrow:hover {
-    color: var(--lp-text-primary);
+    color: var(--lp-text-primary, rgba(255, 255, 255, 0.9));
     transform: translateY(-50%) scale(1.15);
+}
+
+/* Same ST-theme bare-<button> override as the view toggle (see note there).
+   Strictly-higher (0,6,1) selector + !important so themed pill styling can't
+   repaint the arrows. transform is left to the base/hover rules above. */
+.lp-container .lp-cards-area button.lp-page-arrow.lp-page-arrow.lp-page-arrow.lp-page-arrow {
+    background: rgba(0, 0, 0, 0.3) !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 50% !important;
+    box-shadow: none !important;
+    color: var(--lp-text-tertiary, rgba(255, 255, 255, 0.4)) !important;
+    font-size: 1.6em !important;
+    font-weight: normal !important;
+    letter-spacing: normal !important;
+    transition: background 0.15s ease, color 0.15s ease, transform 0.2s ease;
+}
+.lp-container .lp-cards-area button.lp-page-arrow.lp-page-arrow.lp-page-arrow.lp-page-arrow:hover {
+    color: var(--lp-text-primary, rgba(255, 255, 255, 0.9)) !important;
+    background: rgba(0, 0, 0, 0.45) !important;
+    box-shadow: none !important;
 }
 
 .lp-page-arrow-left  { left: 1em; }
@@ -502,7 +587,7 @@ body:has(.lp-container.lp-loaded) .bd-side-btn {
 .lpm-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.55);
+    background: var(--lpm-scrim);
     z-index: 10001;
     opacity: 0;
     transition: opacity 0.2s ease;
@@ -520,8 +605,8 @@ body:has(.lp-container.lp-loaded) .bd-side-btn {
     transform: translate(-50%, -50%) scale(0.95);
     width: min(860px, 92vw);
     height: min(700px, 88vh);
-    background: rgba(18, 18, 22, 0.97);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--lpm-surface-solid);
+    border: 1px solid var(--lpm-line-soft);
     z-index: 10002;
     display: flex;
     flex-direction: column;
@@ -541,29 +626,29 @@ body:has(.lp-container.lp-loaded) .bd-side-btn {
     align-items: center;
     justify-content: space-between;
     padding: 12px 16px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid var(--lpm-line-soft);
     flex-shrink: 0;
 }
 .lpm-title {
     font-size: 14px;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.85);
+    color: var(--lpm-text);
     letter-spacing: 0.3px;
     display: flex;
     align-items: center;
     gap: 8px;
 }
-.lpm-title i { color: rgba(180, 160, 140, 0.7); }
+.lpm-title i { color: var(--lpm-accent-soft); }
 
 .lpm-close {
     cursor: pointer;
-    color: rgba(255, 255, 255, 0.35);
+    color: var(--lpm-text-faint);
     font-size: 20px;
     line-height: 1;
     padding: 4px 6px;
     transition: color 0.15s;
 }
-.lpm-close:hover { color: rgba(255, 255, 255, 0.8); }
+.lpm-close:hover { color: var(--lpm-text); }
 
 .lpm-body {
     display: flex;
@@ -574,7 +659,7 @@ body:has(.lp-container.lp-loaded) .bd-side-btn {
 .lpm-rail {
     width: 56px;
     flex-shrink: 0;
-    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    border-right: 1px solid var(--lpm-line-soft);
     padding: 10px 0;
     display: flex;
     flex-direction: column;
@@ -589,18 +674,18 @@ body:has(.lp-container.lp-loaded) .bd-side-btn {
     width: 42px;
     height: 42px;
     cursor: pointer;
-    color: rgba(255, 255, 255, 0.4);
+    color: var(--lpm-text-3);
     transition: color 0.15s, background 0.15s;
     border-left: 2px solid transparent;
 }
 .lpm-nav-item:hover {
-    color: rgba(255, 255, 255, 0.7);
-    background: rgba(255, 255, 255, 0.03);
+    color: var(--lpm-text-2);
+    background: var(--lpm-wash);
 }
 .lpm-nav-item.lpm-nav-active {
-    color: rgba(255, 255, 255, 0.9);
-    background: rgba(255, 255, 255, 0.06);
-    border-left-color: rgba(180, 160, 140, 0.6);
+    color: var(--lpm-text);
+    background: var(--lpm-line-soft);
+    border-left-color: var(--lpm-accent-soft);
 }
 .lpm-nav-item i { font-size: 18px; }
 
@@ -619,7 +704,7 @@ body:has(.lp-container.lp-loaded) .bd-side-btn {
 .lpm-tab-title {
     font-size: 15px;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.85);
+    color: var(--lpm-text);
 }
 
 .lpm-empty-state {
@@ -629,7 +714,7 @@ body:has(.lp-container.lp-loaded) .bd-side-btn {
     justify-content: center;
     height: 70%;
     gap: 10px;
-    color: rgba(255, 255, 255, 0.3);
+    color: var(--lpm-text-faint);
     text-align: center;
 }
 .lpm-empty-state i { font-size: 28px; opacity: 0.4; }
@@ -641,7 +726,7 @@ body:has(.lp-container.lp-loaded) .bd-side-btn {
 .lpm-section-label {
     font-size: 11px;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.45);
+    color: var(--lpm-text-3);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 10px;
@@ -649,7 +734,7 @@ body:has(.lp-container.lp-loaded) .bd-side-btn {
     align-items: center;
     gap: 6px;
 }
-.lpm-section-label i { font-size: 12px; color: rgba(180, 160, 140, 0.5); }
+.lpm-section-label i { font-size: 12px; color: var(--lpm-accent-soft); }
 
 .lpm-setting-item {
     display: flex;
@@ -664,12 +749,12 @@ body:has(.lp-container.lp-loaded) .bd-side-btn {
     gap: 4px;
     padding: 6px 0;
 }
-.lpm-setting-title { font-size: 13px; color: rgba(255, 255, 255, 0.8); font-weight: 500; }
-.lpm-setting-desc { font-size: 11px; color: rgba(255, 255, 255, 0.35); margin-top: 1px; }
+.lpm-setting-title { font-size: 13px; color: var(--lpm-text); font-weight: 500; }
+.lpm-setting-desc { font-size: 11px; color: var(--lpm-text-faint); margin-top: 1px; }
 
 .lpm-divider {
     border: none;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    border-top: 1px solid var(--lpm-line-soft);
     margin: 14px 0;
 }
 
@@ -686,24 +771,24 @@ body:has(.lp-container.lp-loaded) .bd-side-btn {
     white-space: nowrap;
 }
 .lpm-btn-accent {
-    background: rgba(180, 160, 140, 0.2);
-    color: rgba(255, 255, 255, 0.75);
-    border: 1px solid rgba(180, 160, 140, 0.25);
+    background: var(--lpm-accent-bg);
+    color: var(--lpm-text-2);
+    border: 1px solid var(--lpm-accent-line);
 }
-.lpm-btn-accent:hover { background: rgba(180, 160, 140, 0.3); color: rgba(255, 255, 255, 0.9); }
-.lpm-btn-ghost { background: none; color: rgba(255, 255, 255, 0.45); }
-.lpm-btn-ghost:hover { color: rgba(255, 255, 255, 0.75); background: rgba(255, 255, 255, 0.04); }
+.lpm-btn-accent:hover { background: var(--lpm-accent-bg-hover); color: var(--lpm-text); }
+.lpm-btn-ghost { background: none; color: var(--lpm-text-3); }
+.lpm-btn-ghost:hover { color: var(--lpm-text-2); background: var(--lpm-wash); }
 
 .lpm-btn-icon {
     background: none;
     border: none;
-    color: rgba(255, 255, 255, 0.25);
+    color: var(--lpm-text-faint);
     cursor: pointer;
     padding: 3px 5px;
     font-size: 12px;
     transition: color 0.15s;
 }
-.lpm-btn-icon:hover { color: rgba(255, 255, 255, 0.7); }
+.lpm-btn-icon:hover { color: var(--lpm-text-2); }
 
 .lpm-modal input[type='checkbox'] {
     -webkit-appearance: none;
@@ -711,8 +796,8 @@ body:has(.lp-container.lp-loaded) .bd-side-btn {
     width: 1.25em;
     height: 1.25em;
     border-radius: 4px;
-    background-color: var(--SmartThemeBlurTintColor, rgba(0, 0, 0, 0.2));
-    border: 2px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.2));
+    background-color: var(--SmartThemeBlurTintColor, var(--lpm-sink));
+    border: 2px solid var(--SmartThemeBorderColor, var(--lpm-line));
     display: grid;
     place-content: center;
     margin: 0;
@@ -722,35 +807,41 @@ body:has(.lp-container.lp-loaded) .bd-side-btn {
 }
 .lpm-modal input[type='checkbox']:active { transform: scale(0.92); }
 .lpm-modal input[type='checkbox']:checked {
-    background-color: var(--SmartThemeQuoteColor, rgba(180, 160, 140, 0.9));
+    background-color: var(--SmartThemeQuoteColor, var(--lpm-accent));
 }
 
 .lpm-select,
 .lpm-input-num {
     padding: 5px 8px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.8);
+    background: var(--lpm-wash);
+    border: 1px solid var(--lpm-line-soft);
+    color: var(--lpm-text);
     font-size: 12px;
     font-family: inherit;
     cursor: pointer;
 }
 .lpm-input-num { width: 60px; text-align: center; cursor: text; }
 .lpm-select:focus,
-.lpm-input-num:focus { outline: none; border-color: rgba(180, 160, 140, 0.4); }
-.lpm-select option { background: rgb(25, 25, 30); color: rgba(255, 255, 255, 0.85); }
+.lpm-input-num:focus { outline: none; border-color: var(--lpm-accent-line); }
+.lpm-select option { background: var(--lpm-surface-solid); color: var(--lpm-text); }
+/* ST core defines `select option:not(:checked){background:var(--black70a)}`
+   at specificity (0,1,2), which beats `.lpm-select option` (0,1,1) and
+   leaks a dark option list on light themes. Match `:not(:checked)` at
+   (0,2,1) so the theme surface wins; tint the selected row with accent. */
+.lpm-select option:not(:checked) { background: var(--lpm-surface-solid); }
+.lpm-select option:checked { background: var(--lpm-accent-bg); color: var(--lpm-text); }
 
 /* ---- Step 8 additions: text input, field label, info block ---- */
 
 .lpm-input-text {
     padding: 5px 8px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.8);
+    background: var(--lpm-wash);
+    border: 1px solid var(--lpm-line-soft);
+    color: var(--lpm-text);
     font-size: 12px;
     font-family: inherit;
 }
-.lpm-input-text:focus { outline: none; border-color: rgba(180, 160, 140, 0.4); }
+.lpm-input-text:focus { outline: none; border-color: var(--lpm-accent-line); }
 
 .lpm-setting-item-col .lpm-input-text {
     width: 100%;
@@ -760,7 +851,7 @@ body:has(.lp-container.lp-loaded) .bd-side-btn {
 .lpm-field-label {
     font-size: 11px;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--lpm-text-3);
     text-transform: uppercase;
     letter-spacing: 0.3px;
     display: block;
@@ -768,13 +859,13 @@ body:has(.lp-container.lp-loaded) .bd-side-btn {
 
 .lpm-info-block {
     font-size: 12px;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--lpm-text-3);
     padding: 8px 12px;
-    background: rgba(0, 0, 0, 0.15);
-    border: 1px solid rgba(255, 255, 255, 0.04);
+    background: var(--lpm-sink-soft);
+    border: 1px solid var(--lpm-wash);
     line-height: 1.7;
 }
-.lpm-info-block strong { color: rgba(220, 180, 140, 0.85); font-weight: 600; }
+.lpm-info-block strong { color: var(--lpm-accent); font-weight: 600; }
 
 
 /* ============================================================
@@ -814,7 +905,7 @@ body:has(.lp-container.lp-loaded) .bd-side-btn {
 /* Tag menu (appended to <body> for Popper positioning) */
 #lpTagMenu {
     z-index: 10000;
-    background: var(--lp-menu-bg, rgba(10, 10, 14, 0.7));
+    background: var(--lp-menu-bg, var(--lpm-surface-menu));
     backdrop-filter: blur(var(--lp-sidebar-blur, 12px));
     -webkit-backdrop-filter: blur(var(--lp-sidebar-blur, 12px));
     border: 1px solid var(--lp-border-soft);
@@ -900,7 +991,7 @@ body:has(.lp-container.lp-loaded) .bd-side-btn {
 }
 .lpm-tag-name {
     font-size: 13px;
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--lpm-text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -910,7 +1001,7 @@ body:has(.lp-container.lp-loaded) .bd-side-btn {
     height: 10px;
     border-radius: 50%;
     flex-shrink: 0;
-    border: 1px solid rgba(255, 255, 255, 0.25);
+    border: 1px solid var(--lpm-text-faint);
 }
 .lpm-tag-dot-empty { background: transparent; border-style: dashed; }
 .lpm-tag-rename {
@@ -938,7 +1029,7 @@ body:has(.lp-container.lp-loaded) .bd-side-btn {
     width: 64px;
     height: 40px;
     flex-shrink: 0;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--lpm-line);
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -947,13 +1038,13 @@ body:has(.lp-container.lp-loaded) .bd-side-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: rgba(255, 255, 255, 0.2);
-    background: rgba(255, 255, 255, 0.03);
+    color: var(--lpm-line);
+    background: var(--lpm-wash);
 }
 .lpm-wp-row-main { flex: 1; min-width: 0; }
 .lpm-wp-row-label {
     font-size: 13px;
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--lpm-text);
     font-weight: 500;
 }
 .lpm-wp-row-file {
@@ -964,7 +1055,7 @@ body:has(.lp-container.lp-loaded) .bd-side-btn {
 }
 .lpm-wp-name {
     font-size: 11px;
-    color: rgba(255, 255, 255, 0.4);
+    color: var(--lpm-text-3);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -998,18 +1089,18 @@ body:has(.lp-container.lp-loaded) .bd-side-btn {
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--lpm-line-soft);
     cursor: pointer;
     transition: border-color 0.15s, transform 0.1s;
     overflow: hidden;
 }
 .lpm-wp-tile:hover {
-    border-color: rgba(180, 160, 140, 0.6);
+    border-color: var(--lpm-accent-soft);
     transform: scale(1.02);
 }
 .lpm-wp-tile-active {
-    border-color: rgba(220, 180, 140, 0.95);
-    box-shadow: 0 0 0 1px rgba(220, 180, 140, 0.6) inset;
+    border-color: var(--lpm-accent);
+    box-shadow: 0 0 0 1px var(--lpm-accent-soft) inset;
 }
 .lpm-wp-tile-name {
     position: absolute;
@@ -1018,8 +1109,8 @@ body:has(.lp-container.lp-loaded) .bd-side-btn {
     bottom: 0;
     padding: 3px 6px;
     font-size: 10px;
-    color: rgba(255, 255, 255, 0.9);
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+    color: var(--lpm-text);
+    background: var(--lpm-tile-label);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1030,8 +1121,8 @@ body:has(.lp-container.lp-loaded) .bd-side-btn {
     align-items: center;
     justify-content: center;
     gap: 4px;
-    background: rgba(255, 255, 255, 0.03);
-    color: rgba(255, 255, 255, 0.4);
+    background: var(--lpm-wash);
+    color: var(--lpm-text-3);
     font-size: 11px;
 }
 .lpm-wp-tile-none i { font-size: 16px; }
@@ -1039,7 +1130,7 @@ body:has(.lp-container.lp-loaded) .bd-side-btn {
     grid-column: 1 / -1;
     padding: 24px;
     text-align: center;
-    color: rgba(255, 255, 255, 0.35);
+    color: var(--lpm-text-faint);
     font-size: 12px;
 }
 
@@ -1056,13 +1147,38 @@ body:has(.lp-container.lp-loaded) .bd-side-btn {
     justify-content: center;
     border: none;
     background: none;
-    color: var(--lp-text-tertiary);
+    color: var(--lp-text-tertiary, rgba(255, 255, 255, 0.4));
     cursor: pointer;
     font-size: 1.2em;
     transition: color 0.2s ease;
 }
 .lp-view-toggle:hover {
-    color: var(--lp-text-primary);
+    color: var(--lp-text-primary, rgba(255, 255, 255, 0.9));
+}
+
+/* Override ST themes that blanket-style bare <button> with !important.
+   A theme rule like `button:not(.mes_button):not(...)` is specificity
+   (0,5,1) AND !important, so it repaints these icon-only buttons as themed
+   pills. We beat it with a strictly-higher (0,6,1) selector (repeated class)
+   + !important so the LP picker's own look wins. Repeated class is
+   intentional, not a typo — it's the minimal weight that clears (0,5,1). */
+.lp-container .lp-top-icon-bar button.lp-view-toggle.lp-view-toggle.lp-view-toggle.lp-view-toggle {
+    background: rgba(0, 0, 0, 0.3) !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: var(--lp-radius-md, 6px) !important;
+    box-shadow: none !important;
+    color: var(--lp-text-tertiary, rgba(255, 255, 255, 0.4)) !important;
+    font-size: 1.2em !important;
+    font-weight: normal !important;
+    letter-spacing: normal !important;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+.lp-container .lp-top-icon-bar button.lp-view-toggle.lp-view-toggle.lp-view-toggle.lp-view-toggle:hover {
+    color: var(--lp-text-primary, rgba(255, 255, 255, 0.9)) !important;
+    background: rgba(0, 0, 0, 0.45) !important;
+    box-shadow: none !important;
 }
 
 /* ============================================================
@@ -1197,7 +1313,7 @@ body:has(.lp-container.lp-loaded) .bd-side-btn {
 
 .lpm-btn-empty {
     font-size: 12px;
-    color: rgba(255, 255, 255, 0.35);
+    color: var(--lpm-text-faint);
     font-style: italic;
     padding: 10px 0;
 }
@@ -1212,8 +1328,8 @@ body:has(.lp-container.lp-loaded) .bd-side-btn {
     align-items: flex-start;
     gap: 10px;
     padding: 8px;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: var(--lpm-wash);
+    border: 1px solid var(--lpm-line-soft);
 }
 .lpm-btn-row-preview {
     width: 32px;
@@ -1222,13 +1338,13 @@ body:has(.lp-container.lp-loaded) .bd-side-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: rgba(220, 180, 140, 0.9);
+    color: var(--lpm-accent);
     font-size: 14px;
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: var(--lpm-sink);
+    border: 1px solid var(--lpm-line-soft);
     margin-top: 1px;
 }
-.lpm-btn-preview-empty { color: rgba(255, 255, 255, 0.18); }
+.lpm-btn-preview-empty { color: var(--lpm-line); }
 .lpm-btn-row-fields {
     flex: 1;
     min-width: 0;
@@ -1247,7 +1363,7 @@ body:has(.lp-container.lp-loaded) .bd-side-btn {
     flex-shrink: 0;
 }
 .lpm-btn-icon:disabled { opacity: 0.2; cursor: default; }
-.lpm-btn-icon:disabled:hover { color: rgba(255, 255, 255, 0.25); }
+.lpm-btn-icon:disabled:hover { color: var(--lpm-text-faint); }
 .lpm-btn-del:hover { color: rgba(230, 140, 120, 0.9); }
 .lpm-btn-add-wrap { margin-top: 4px; }
 
@@ -1267,28 +1383,28 @@ body:has(.lp-container.lp-loaded) .bd-side-btn {
     align-items: center;
     gap: 12px;
     padding: 8px 10px;
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--lpm-line-soft);
     cursor: pointer;
     transition: border-color 0.15s, background 0.15s;
 }
 .lpm-theme-row:hover {
-    background: rgba(255, 255, 255, 0.03);
-    border-color: rgba(255, 255, 255, 0.12);
+    background: var(--lpm-wash);
+    border-color: var(--lpm-line);
 }
 .lpm-theme-row-active {
-    border-color: rgba(220, 180, 140, 0.6);
-    background: rgba(180, 160, 140, 0.08);
+    border-color: var(--lpm-accent-soft);
+    background: var(--lpm-accent-bg);
 }
 .lpm-theme-name {
     flex: 1;
     min-width: 0;
     font-size: 13px;
-    color: rgba(255, 255, 255, 0.85);
+    color: var(--lpm-text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
-.lpm-theme-check { color: rgba(220, 180, 140, 0.9); font-size: 12px; flex-shrink: 0; }
+.lpm-theme-check { color: var(--lpm-accent); font-size: 12px; flex-shrink: 0; }
 
 /* Preview swatch: theme surfaces composed over a checkerboard so the
    semi-transparent rgba values read the way they would over a wallpaper. */
@@ -1335,7 +1451,7 @@ body:has(.lp-container.lp-loaded) .bd-side-btn {
     -webkit-appearance: none;
     appearance: none;
     height: 4px;
-    background: rgba(255, 255, 255, 0.12);
+    background: var(--lpm-line);
     border-radius: 2px;
     outline: none;
     cursor: pointer;
@@ -1345,22 +1461,22 @@ body:has(.lp-container.lp-loaded) .bd-side-btn {
     width: 14px;
     height: 14px;
     border-radius: 50%;
-    background: rgba(180, 160, 140, 0.85);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: var(--lpm-accent);
+    border: 1px solid var(--lpm-line);
     cursor: pointer;
 }
 .lpm-overlay-range::-moz-range-thumb {
     width: 14px;
     height: 14px;
     border-radius: 50%;
-    background: rgba(180, 160, 140, 0.85);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: var(--lpm-accent);
+    border: 1px solid var(--lpm-line);
     cursor: pointer;
 }
 .lpm-overlay-value {
     min-width: 36px;
     text-align: right;
     font-size: 0.85em;
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--lpm-text-2);
     font-variant-numeric: tabular-nums;
 }

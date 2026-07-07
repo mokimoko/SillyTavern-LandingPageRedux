@@ -37,6 +37,7 @@ const DEFAULT_SETTINGS = {
     overlayOpacity: 35,
     userThemes: [],
     avatarScale: 100,
+    spriteNegCache: [],
 };
 
 export function getSettings() {
@@ -52,6 +53,31 @@ export function getSettings() {
     }
     return extension_settings[MODULE_NAME];
 }
+
+// Resolve the Nebula Loader cloak's fate AS EARLY AS POSSIBLE — at module
+// evaluation, not in the APP_READY handler. On setups with many/slow extensions
+// APP_READY can fire many seconds into boot, which is too late: the cloak's
+// short failsafe lifts at ~1.5s and the bare ST shell flashes before the landing
+// page paints. Deciding here — the instant this file is evaluated — fixes that.
+//
+// The cloak only exists to bridge into the landing page, so:
+//   • enabled  → CLAIM it (cancel the failsafe); we lift it on content-ready.
+//   • disabled → LIFT it now; there's no landing page coming, so the cloak
+//                serves no purpose and should get out of the way immediately
+//                instead of pinning ST's UI behind it until APP_READY (+seconds).
+//
+// (When the landing page isn't installed at all, neither branch runs and the
+// plugin's own short failsafe reveals ST promptly — which is exactly right for
+// that case.) ST loads extension settings before evaluating extension modules,
+// so this `enabled` read is reliable at load time. Both hooks are no-ops when
+// nebula-loader isn't installed.
+try {
+    if (getSettings().enabled) {
+        window.__nebulaClaimCloak?.();
+    } else {
+        window.__nebulaLiftCloak?.();
+    }
+} catch { /* settings not ready or hook absent — safe to skip */ }
 
 export function setNavigating(value) {
     isNavigating = value;
