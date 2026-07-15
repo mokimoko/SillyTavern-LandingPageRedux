@@ -11,7 +11,7 @@ Use SillyTavern's built-in extension installer:
 1. Open **Extensions** → **Install Extension**
 2. Paste this URL:
    ```
-   https://github.com/nrahis/SillyTavern-LandingPageRedux
+   https://github.com/mokimoko/SillyTavern-LandingPageRedux
    ```
 3. Click **Install** and reload if prompted
 
