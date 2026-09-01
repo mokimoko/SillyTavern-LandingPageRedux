@@ -1,5 +1,5 @@
 /**
- * wallpapers.js — background wallpaper resolution + ST backgrounds API (step 10).
+ * wallpapers.js — background wallpaper resolution + ST backgrounds API.
  *
  * Resolution order for the landing-page background:
  *   per-tag wallpaper (if assigned and the file still exists) → global → none.
@@ -12,9 +12,20 @@
 import { getRequestHeaders, getThumbnailUrl, saveSettingsDebounced } from '../../../../../script.js';
 import { getBackgroundPath } from '../../../../backgrounds.js';
 import { getSettings } from '../index.js';
+import { createRetryableAsyncCache, resolveWallpaperFilename } from './runtimeLogic.js';
 
-// Cache of available background filenames. null = not fetched yet.
-let cachedBackgrounds = null;
+const backgroundCache = createRetryableAsyncCache(async () => {
+    const response = await fetch('/api/backgrounds/all', {
+        method: 'POST',
+        headers: getRequestHeaders(),
+        body: JSON.stringify({}),
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const { images } = await response.json();
+    return (images || [])
+        .map(entry => (typeof entry === 'string' ? entry : entry?.filename))
+        .filter(Boolean);
+});
 
 /** CSS background-image value for a filename, or '' for falsy input. */
 export function wallpaperCssUrl(filename) {
@@ -35,23 +46,12 @@ export function wallpaperThumbUrl(filename) {
  * @returns {Promise<string[]>}
  */
 export async function getAvailableBackgrounds(force = false) {
-    if (cachedBackgrounds && !force) return cachedBackgrounds;
     try {
-        const response = await fetch('/api/backgrounds/all', {
-            method: 'POST',
-            headers: getRequestHeaders(),
-            body: JSON.stringify({}),
-        });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const { images } = await response.json();
-        cachedBackgrounds = (images || [])
-            .map(x => (typeof x === 'string' ? x : x?.filename))
-            .filter(Boolean);
+        return await backgroundCache.get(force);
     } catch (err) {
         console.error('[LPR] Failed to list backgrounds:', err);
-        cachedBackgrounds = cachedBackgrounds || [];
+        return backgroundCache.peek() || [];
     }
-    return cachedBackgrounds;
 }
 
 /**
@@ -63,8 +63,9 @@ export async function getAvailableBackgrounds(force = false) {
  */
 export function backgroundExists(filename) {
     if (!filename) return false;
-    if (cachedBackgrounds === null) return true; // cold cache → assume present
-    return cachedBackgrounds.includes(filename);
+    const cached = backgroundCache.peek();
+    if (cached === undefined) return true; // cold cache → assume present
+    return cached.includes(filename);
 }
 
 /**
@@ -75,13 +76,8 @@ export function backgroundExists(filename) {
  */
 export function getActiveWallpaper(tagId) {
     const settings = getSettings();
-
-    if (tagId && settings.tagWallpapers?.[tagId]) {
-        const file = settings.tagWallpapers[tagId];
-        if (backgroundExists(file)) return wallpaperCssUrl(file);
-        // assigned but missing → fall through to global
-    }
-    return settings.globalWallpaper ? wallpaperCssUrl(settings.globalWallpaper) : '';
+    const filename = resolveWallpaperFilename(settings, tagId, backgroundExists);
+    return wallpaperCssUrl(filename);
 }
 
 // ---- Mutators (persist immediately) ----

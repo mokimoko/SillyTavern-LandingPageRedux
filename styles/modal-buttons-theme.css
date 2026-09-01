@@ -1,0 +1,174 @@
+/* ============================================================
+   Buttons modal tab
+   ============================================================ */
+
+.lpm-btn-empty {
+    font-size: 12px;
+    color: var(--lpm-text-faint);
+    font-style: italic;
+    padding: 10px 0;
+}
+.lpm-btn-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+.lpm-btn-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px;
+    background: var(--lpm-wash);
+    border: 1px solid var(--lpm-line-soft);
+}
+.lpm-btn-row-preview {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--lpm-accent);
+    font-size: 14px;
+    background: var(--lpm-sink);
+    border: 1px solid var(--lpm-line-soft);
+    margin-top: 1px;
+}
+.lpm-btn-preview-empty { color: var(--lpm-line); }
+.lpm-btn-row-fields {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.lpm-btn-row-fields .lpm-input-text { width: 100%; box-sizing: border-box; }
+.lpm-btn-row-sub { display: flex; gap: 6px; }
+.lpm-btn-row-sub .lpm-btn-f-icon { flex: 1 1 55%; min-width: 0; }
+.lpm-btn-row-sub .lpm-btn-f-cmd  { flex: 1 1 45%; min-width: 0; }
+.lpm-btn-row-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex-shrink: 0;
+}
+.lpm-btn-icon:disabled { opacity: 0.2; cursor: default; }
+.lpm-btn-icon:disabled:hover { color: var(--lpm-text-faint); }
+.lpm-btn-del:hover { color: rgba(230, 140, 120, 0.9); }
+.lpm-btn-add-wrap { margin-top: 4px; }
+
+
+/* ============================================================
+   Theme modal tab
+   ============================================================ */
+
+.lpm-theme-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.lpm-theme-radio { display: none; }
+.lpm-theme-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 10px;
+    border: 1px solid var(--lpm-line-soft);
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+}
+.lpm-theme-row:hover {
+    background: var(--lpm-wash);
+    border-color: var(--lpm-line);
+}
+.lpm-theme-row-active {
+    border-color: var(--lpm-accent-soft);
+    background: var(--lpm-accent-bg);
+}
+.lpm-theme-name {
+    flex: 1;
+    min-width: 0;
+    font-size: 13px;
+    color: var(--lpm-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.lpm-theme-check { color: var(--lpm-accent); font-size: 12px; flex-shrink: 0; }
+
+/* Preview swatch: theme surfaces composed over a checkerboard so the
+   semi-transparent rgba values read the way they would over a wallpaper. */
+.lpm-theme-swatch {
+    position: relative;
+    width: 56px;
+    height: 36px;
+    flex-shrink: 0;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+    background:
+        repeating-conic-gradient(rgba(255, 255, 255, 0.06) 0% 25%, transparent 0% 50%) 0 / 12px 12px,
+        #2a2a30;
+}
+.lpm-theme-swatch-bg { position: absolute; inset: 0; }
+.lpm-theme-swatch-side {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 38%;
+    border-right: 1px solid rgba(255, 255, 255, 0.18);
+}
+.lpm-theme-swatch-dot {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+
+/* Overlay opacity slider */
+.lpm-overlay-slider-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 4px;
+}
+.lpm-overlay-range {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    background: var(--lpm-line);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+}
+.lpm-overlay-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--lpm-accent);
+    border: 1px solid var(--lpm-line);
+    cursor: pointer;
+}
+.lpm-overlay-range::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--lpm-accent);
+    border: 1px solid var(--lpm-line);
+    cursor: pointer;
+}
+.lpm-overlay-value {
+    min-width: 36px;
+    text-align: right;
+    font-size: 0.85em;
+    color: var(--lpm-text-2);
+    font-variant-numeric: tabular-nums;
+}
+

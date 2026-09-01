@@ -1,0 +1,175 @@
+/* ============================================================
+   View toggle button — top icon bar
+   ============================================================ */
+
+.lp-view-toggle {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: none;
+    color: var(--lp-text-tertiary, rgba(255, 255, 255, 0.4));
+    cursor: pointer;
+    font-size: 1.2em;
+    transition: color 0.2s ease;
+}
+.lp-view-toggle:hover {
+    color: var(--lp-text-primary, rgba(255, 255, 255, 0.9));
+}
+
+/* Override ST themes that blanket-style bare <button> with !important.
+   A theme rule like `button:not(.mes_button):not(...)` is specificity
+   (0,5,1) AND !important, so it repaints these icon-only buttons as themed
+   pills. We beat it with a strictly-higher (0,6,1) selector (repeated class)
+   + !important so the LP picker's own look wins. Repeated class is
+   intentional, not a typo — it's the minimal weight that clears (0,5,1). */
+.lp-container .lp-top-icon-bar button.lp-view-toggle.lp-view-toggle.lp-view-toggle.lp-view-toggle {
+    background: rgba(0, 0, 0, 0.3) !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: var(--lp-radius-md, 6px) !important;
+    box-shadow: none !important;
+    color: var(--lp-text-tertiary, rgba(255, 255, 255, 0.4)) !important;
+    font-size: 1.2em !important;
+    font-weight: normal !important;
+    letter-spacing: normal !important;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+.lp-container .lp-top-icon-bar button.lp-view-toggle.lp-view-toggle.lp-view-toggle.lp-view-toggle:hover {
+    color: var(--lp-text-primary, rgba(255, 255, 255, 0.9)) !important;
+    background: rgba(0, 0, 0, 0.45) !important;
+    box-shadow: none !important;
+}
+
+/* ============================================================
+   Card view — grid layout
+   Scoped via .lp-view-card on .lp-cards-area. Sprite view keeps
+   the original flex/bottom-aligned layout via .lp-view-sprite.
+   ============================================================ */
+
+.lp-cards-area.lp-view-card {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, var(--lp-card-grid-max, 180px)));
+    grid-auto-rows: max-content;
+    align-items: start;
+    align-content: start;
+    justify-content: center;
+    gap: 1em;
+    padding: 3.5em 3em 2em; /* extra top so the view toggle doesn't overlap */
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+    height: 100vh;
+    height: 100dvh;
+    box-sizing: border-box;
+}
+
+/* Card-view cards: no bottom bleed, uniform sizing, top-aligned */
+.lp-view-card .lp-character-card {
+    margin: 0;                    /* reset sprite-view per-card margins */
+    transform: none;
+    transform-origin: center center;
+    justify-content: flex-start;
+    width: 100%;
+    align-self: auto;             /* reset sprite-view avatar align-self: center */
+}
+.lp-view-card .lp-character-card:hover {
+    transform: scale(1.03);
+}
+
+.lp-view-card .lp-card-avatar {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 3 / 4;
+    overflow: hidden;             /* reset sprite overflow: visible */
+    border-radius: var(--lp-radius-md, 6px);
+}
+
+.lp-view-card .lp-card-name {
+    position: relative;
+    bottom: auto;
+    left: auto;
+    transform: none;
+    text-align: center;
+    padding: 0.4em 0.3em 0.2em;
+    font-size: 0.95em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    text-shadow: none;
+    color: var(--lp-text-primary);
+}
+
+/* Pagination arrows in card view: fixed so they aren't clipped by overflow:hidden */
+.lp-view-card .lp-page-arrow { position: fixed; }
+.lp-view-card .lp-page-arrow-left  { left: calc(var(--lp-sidebar-width, 250px) + 1em); }
+.lp-view-card .lp-page-arrow-right { right: 1em; }
+
+
+/* ============================================================
+   New chat button — sidebar action area
+   Option B: quiet, matches the custom-button menu language, with
+   an always-on accent icon. Sits beside the settings cog.
+   ============================================================ */
+
+.lp-new-chat {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.7em;
+    padding: 0.55em 0.7em;
+    border-radius: var(--lp-radius-md, 6px);
+    color: var(--lp-text-secondary);
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+.lp-new-chat:hover {
+    background: var(--lp-border-soft);
+    color: var(--lp-text-primary);
+}
+.lp-new-chat i {
+    width: 1.1em;
+    text-align: center;
+    flex-shrink: 0;
+    color: rgba(220, 180, 140, 0.9);
+}
+.lp-new-chat span {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.95em;
+}
+
+/* New chat popup (ST native Popup; selects/inputs use .text_pole) */
+.lpm-new-chat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9em;
+    min-width: min(420px, 80vw);
+    text-align: left;
+}
+.lpm-new-chat .lpm-nc-title { margin: 0 0 0.2em; }
+.lpm-nc-field { display: flex; flex-direction: column; gap: 0.3em; }
+.lpm-nc-field label { font-size: 0.85em; opacity: 0.8; }
+.lpm-nc-field .text_pole { width: 100%; box-sizing: border-box; }
+.lpm-nc-footer {
+    display: flex;
+    gap: 0.6em;
+    justify-content: flex-end;
+    margin-top: 0.4em;
+}
+.lpm-nc-footer .menu_button {
+    white-space: nowrap;
+    width: auto;
+    flex: 0 0 auto;
+}
+
+

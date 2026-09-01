@@ -1,0 +1,33 @@
+html:not(.bd-cloak-done)::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 2147483646;
+    background: #0d0d10;
+    pointer-events: none;
+    animation: bd-cloak-failsafe 12s ease forwards;
+}
+
+html:not(.bd-cloak-done)::after {
+    content: "";
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 42px;
+    height: 42px;
+    margin: -21px 0 0 -21px;
+    z-index: 2147483647;
+    border-radius: 50%;
+    border: 3px solid rgba(255, 255, 255, 0.15);
+    border-top-color: rgba(255, 255, 255, 0.85);
+    pointer-events: none;
+    animation:
+        bd-cloak-spin 0.8s linear infinite,
+        bd-cloak-failsafe 12s ease forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html:not(.bd-cloak-done)::after {
+        animation: bd-cloak-failsafe 12s ease forwards;
+    }
+}

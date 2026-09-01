@@ -19,17 +19,55 @@
  * (modal.js), so "I added sprites, force a rescan" = toggle expressions off/on.
  */
 import { extension_settings } from '../../../../extensions.js';
-import { saveSettingsDebounced } from '../../../../../script.js';
+import { characters as tavernCharacters, saveSettingsDebounced } from '../../../../../script.js';
 import { getSettings } from '../index.js';
+import { getExpressionOverrideFingerprint } from './runtimeLogic.js';
 
 // cacheKey "avatar-expression" → URL or null
 const expressionCache = new Map();
+const BATCH_CONCURRENCY = 6;
+const PROBE_CONCURRENCY = 2;
 
 // How long to wait on a single HEAD probe before aborting. A real 404 comes
 // back in single-digit ms on a LAN; this cap only exists to stop a genuinely
 // hung request from stalling the batch. 1500ms was needlessly generous and let
 // spriteless libraries stack multi-second tails; 600ms is ample headroom.
 const PROBE_TIMEOUT_MS = 600;
+
+function makeCacheKey(avatar, expression) {
+    return JSON.stringify([String(avatar || ''), String(expression || '')]);
+}
+
+function parseCacheKey(key) {
+    try {
+        const value = JSON.parse(key);
+        return Array.isArray(value) && value.length === 2 ? value : null;
+    } catch {
+        return null;
+    }
+}
+
+function encodePathSegment(value) {
+    const segment = String(value || '').trim();
+    if (!segment || segment === '.' || segment === '..' || /[\\/\u0000-\u001f\u007f]/.test(segment)) return null;
+    return encodeURIComponent(segment);
+}
+
+function normalizeExtensions(values) {
+    if (!Array.isArray(values)) return [];
+    return [...new Set(values
+        .map(value => String(value || '').trim().toLowerCase().replace(/^\./, ''))
+        .filter(value => /^[a-z0-9]{1,10}$/.test(value)))];
+}
+
+function getOverrideFingerprint() {
+    const overrides = Array.isArray(extension_settings.expressionOverrides)
+        ? extension_settings.expressionOverrides
+        : [];
+    return getExpressionOverrideFingerprint(overrides);
+}
+
+let overrideFingerprint = getOverrideFingerprint();
 
 // ── Persisted negative cache ────────────────────────────────────────────────
 // Stored as a plain array of "avatar-expression" keys under settings.spriteNegCache.
@@ -72,6 +110,36 @@ export function clearExpressionCache() {
     } catch { /* */ }
 }
 
+function invalidateChangedOverrides() {
+    const nextFingerprint = getOverrideFingerprint();
+    if (nextFingerprint === overrideFingerprint) return;
+    overrideFingerprint = nextFingerprint;
+    clearExpressionCache();
+}
+
+function pruneExpressionCache(characters, expression) {
+    const sourceCharacters = Array.isArray(tavernCharacters) ? tavernCharacters : characters;
+    const activeAvatars = new Set(sourceCharacters.map(char => String(char.avatar || '')));
+    const isCurrent = (key) => {
+        const parsed = parseCacheKey(key);
+        return parsed && activeAvatars.has(parsed[0]) && parsed[1] === expression;
+    };
+
+    for (const key of expressionCache.keys()) {
+        if (!isCurrent(key)) expressionCache.delete(key);
+    }
+
+    try {
+        const settings = getSettings();
+        const current = getNegCacheSet();
+        const pruned = current.filter(isCurrent);
+        if (pruned.length !== current.length) {
+            settings.spriteNegCache = pruned;
+            saveSettingsDebounced();
+        }
+    } catch { /* */ }
+}
+
 /**
  * Targeted rescan hook: forget the CACHED NEGATIVES for a specific set of
  * characters (both the live map and the persisted set), so the next
@@ -91,7 +159,7 @@ export function forgetNegatives(avatars, expression) {
     try { set = getNegCacheSet(); } catch { set = null; }
 
     for (const avatar of avatars) {
-        const cacheKey = `${avatar}-${expression}`;
+        const cacheKey = makeCacheKey(avatar, expression);
         // Only forget confirmed negatives; leave positive URLs cached.
         if (expressionCache.get(cacheKey) === null) {
             expressionCache.delete(cacheKey);
@@ -113,67 +181,27 @@ export function forgetNegatives(avatars, expression) {
  * layout class at card-creation time without blocking on a network probe.
  */
 export function getCachedExpressionUrl(avatar, expression) {
-    const cacheKey = `${avatar}-${expression}`;
+    const cacheKey = makeCacheKey(avatar, expression);
     if (!expressionCache.has(cacheKey)) return undefined; // not yet looked up
     return expressionCache.get(cacheKey); // url string or null
 }
 
 /**
- * Find expression sprite URL for a single character. Cached.
- */
-export async function findExpression(characterName, avatarFileName, expression) {
-    const cacheKey = `${avatarFileName}-${expression}`;
-    if (expressionCache.has(cacheKey)) return expressionCache.get(cacheKey);
-
-    const avatarNoExt = avatarFileName.replace(/\.[^/.]+$/, '');
-    const override = extension_settings.expressionOverrides?.find(e => e.name === avatarNoExt);
-    const folderName = override?.path || characterName;
-
-    const avatarExt = avatarFileName.match(/\.([^.]+)$/)?.[1];
-    const settings = getSettings();
-    const exts = [...settings.extensions];
-    if (avatarExt && exts.includes(avatarExt)) {
-        exts.splice(exts.indexOf(avatarExt), 1);
-        exts.unshift(avatarExt);
-    }
-
-    for (const ext of exts) {
-        const url = `/characters/${folderName}/${expression}.${ext}`;
-        try {
-            const controller = new AbortController();
-            const t = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
-            const resp = await fetch(url, { method: 'HEAD', cache: 'no-store', signal: controller.signal });
-            clearTimeout(t);
-            if (resp.ok) {
-                expressionCache.set(cacheKey, url);
-                return url;
-            }
-        } catch {
-            // expected when expression doesn't exist
-        }
-    }
-
-    rememberNegative(cacheKey);
-    return null;
-}
-
-/**
  * Batch lookup: returns Map<avatar, url|null> for many characters.
  *
- * Each character is resolved independently and concurrently. Within a character,
- * its candidate extensions are probed in parallel and the first existing sprite
- * wins. This avoids the old structure that marched all characters through one
- * extension at a time (png for everyone, then gif for everyone, …), which
- * serialized the per-extension miss latency and could stack into many seconds
- * when characters had no sprites.
+ * Character work runs through a bounded pool. Each character probes a small
+ * number of extensions concurrently and aborts the remaining requests on a hit.
  */
 export async function findExpressions(characters, expression) {
+    invalidateChangedOverrides();
+    pruneExpressionCache(characters, expression);
+
     const results = new Map();
     const settings = getSettings();
-    const exts = [...settings.extensions];
+    const exts = normalizeExtensions(settings.extensions);
 
-    await Promise.all(characters.map(async char => {
-        const cacheKey = `${char.avatar}-${expression}`;
+    await mapWithConcurrency(characters, BATCH_CONCURRENCY, async char => {
+        const cacheKey = makeCacheKey(char.avatar, expression);
         if (expressionCache.has(cacheKey)) {
             const cached = expressionCache.get(cacheKey);
             if (cached) results.set(char.avatar, cached);
@@ -193,39 +221,74 @@ export async function findExpressions(characters, expression) {
         } else {
             rememberNegative(cacheKey);
         }
-    }));
+    });
 
     return results;
 }
 
 /**
- * Probe a character's expression sprite across several extensions in parallel.
+ * Probe a character's expression sprite across several extensions with a small
+ * concurrency cap.
  * Resolves to the first URL that returns a successful HEAD, or null if none do.
  * A short per-request abort keeps a hung request from stalling the whole probe;
  * a missing file normally 404s quickly, well under the limit.
  */
 async function firstExistingSprite(folderName, expression, exts) {
-    const probe = (ext) => new Promise(resolve => {
-        const url = `/characters/${folderName}/${expression}.${ext}`;
-        const controller = new AbortController();
-        const t = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
-        fetch(url, { method: 'HEAD', cache: 'no-store', signal: controller.signal })
-            .then(resp => { clearTimeout(t); resolve(resp.ok ? url : null); })
-            .catch(() => { clearTimeout(t); resolve(null); });
-    });
+    const folder = encodePathSegment(folderName);
+    const sprite = encodePathSegment(expression);
+    const extensions = normalizeExtensions(exts);
+    if (!folder || !sprite || extensions.length === 0) return null;
 
-    // Run all extension probes at once; return the first hit as soon as it lands.
     return new Promise(resolve => {
-        let remaining = exts.length;
+        const controllers = new Set();
+        let nextIndex = 0;
+        let active = 0;
         let settled = false;
-        if (remaining === 0) { resolve(null); return; }
-        exts.forEach(ext => {
-            probe(ext).then(url => {
-                if (settled) return;
-                if (url) { settled = true; resolve(url); return; }
-                remaining -= 1;
-                if (remaining === 0) resolve(null);
-            });
-        });
+
+        const finish = (url) => {
+            if (settled) return;
+            settled = true;
+            controllers.forEach(controller => controller.abort());
+            controllers.clear();
+            resolve(url);
+        };
+
+        const launch = () => {
+            while (!settled && active < PROBE_CONCURRENCY && nextIndex < extensions.length) {
+                const ext = extensions[nextIndex++];
+                const url = `/characters/${folder}/${sprite}.${ext}`;
+                const controller = new AbortController();
+                controllers.add(controller);
+                active++;
+
+                void (async () => {
+                    const timer = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
+                    try {
+                        const response = await fetch(url, { method: 'HEAD', cache: 'no-store', signal: controller.signal });
+                        if (response.ok) finish(url);
+                    } catch { /* missing or aborted */ }
+                    finally {
+                        clearTimeout(timer);
+                        controllers.delete(controller);
+                        active--;
+                        if (!settled && nextIndex >= extensions.length && active === 0) finish(null);
+                        else launch();
+                    }
+                })();
+            }
+        };
+
+        launch();
     });
+}
+
+async function mapWithConcurrency(items, limit, worker) {
+    let nextIndex = 0;
+    const run = async () => {
+        while (nextIndex < items.length) {
+            const item = items[nextIndex++];
+            await worker(item);
+        }
+    };
+    await Promise.all(Array.from({ length: Math.min(limit, items.length) }, run));
 }

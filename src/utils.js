@@ -13,28 +13,21 @@ export function esc(value) {
 }
 
 /**
- * Normalize an ST avatar filename for comparison (strips extension, lowercases).
- * Used by tag filtering in step 9.
- */
-export function cleanAvatar(avatar) {
-    if (!avatar) return '';
-    return String(avatar).replace(/\.[^/.]+$/, '').toLowerCase();
-}
-
-/**
  * Open a character's most recent chat via ST's /go slash command.
  * Caller should set setNavigating(true) BEFORE invoking this to prevent
  * landing-page flicker during the chat-close → chat-open transition.
  */
 export async function navigateToChat(avatar) {
-    if (!avatar) return;
+    if (!avatar) return false;
     try {
         await executeSlashCommands(`/go ${avatar}`);
+        return true;
     } catch (err) {
         console.error('[LPR] navigateToChat failed:', err);
         if (typeof toastr !== 'undefined') {
             toastr.error('Failed to open chat', 'Landing Page');
         }
+        return false;
     }
 }
 

@@ -1,0 +1,365 @@
+/* ============================================================
+   Responsive landing surface + control panel
+   ============================================================ */
+
+@media (max-width: 760px) {
+    .lp-container {
+        flex-direction: column;
+    }
+
+    .lp-sidebar {
+        width: 100%;
+        height: auto;
+        max-height: min(40dvh, 300px);
+        padding: 0.75em;
+        border-right: 0;
+        border-bottom: 1px solid var(--lp-border-soft);
+    }
+
+    .lp-user-avatar {
+        width: 32px;
+        height: 32px;
+    }
+
+    .lp-sidebar-rest {
+        margin-top: 0.5em;
+        gap: 0.5em;
+    }
+
+    .lp-menu-panel {
+        flex-direction: row;
+        overflow-x: auto;
+        padding-bottom: 0.25em;
+    }
+
+    .lp-menu-item {
+        flex: 0 0 auto;
+    }
+
+    .lp-action-area {
+        margin-top: 0.25em;
+        padding-top: 0.5em;
+    }
+
+    .lp-cards-area,
+    .lp-cards-area.lp-view-card {
+        width: 100%;
+        height: auto;
+        min-height: 0;
+        padding: 3.25em 1em 1em;
+    }
+
+    .lp-cards-area.lp-view-card {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75em;
+    }
+
+    .lp-view-card .lp-page-arrow-left { left: 0.5em; }
+    .lp-view-card .lp-page-arrow-right { right: 0.5em; }
+
+    .lpm-modal {
+        width: calc(100vw - 16px);
+        height: calc(100dvh - 16px);
+    }
+
+    .lpm-body {
+        flex-direction: column;
+    }
+
+    .lpm-rail {
+        width: 100%;
+        padding: 4px;
+        flex-direction: row;
+        justify-content: center;
+        overflow-x: auto;
+        border-right: 0;
+        border-bottom: 1px solid var(--lpm-line-soft);
+    }
+
+    .lpm-nav-item {
+        width: 40px;
+        height: 40px;
+        flex: 0 0 40px;
+        border-left: 0;
+        border-bottom: 2px solid transparent;
+    }
+
+    .lpm-nav-item.lpm-nav-active {
+        border-left-color: transparent;
+        border-bottom-color: var(--lpm-accent-soft);
+    }
+
+    .lpm-content {
+        padding: 14px;
+    }
+
+    .lpm-setting-item {
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .lpm-setting-info {
+        flex: 1 1 220px;
+    }
+
+    .lpm-tag-row,
+    .lpm-wp-row,
+    .lpm-btn-row,
+    .lpm-btn-row-sub,
+    .lpm-nc-footer,
+    .lpm-overlay-slider-row {
+        flex-wrap: wrap;
+    }
+
+    .lpm-tag-rename,
+    .lpm-tag-view-select {
+        width: 100%;
+        margin-left: 28px;
+    }
+
+    .lpm-new-chat {
+        min-width: min(420px, 74vw);
+    }
+}
+
+@media (max-width: 420px) {
+    .lp-cards-area.lp-view-card {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .lpm-header {
+        padding: 10px 12px;
+    }
+
+    .lpm-title {
+        font-size: 13px;
+    }
+
+    .lpm-theme-swatch {
+        width: 44px;
+    }
+}
+
+@media (max-height: 600px) {
+    .lp-sidebar {
+        padding-top: 0.5em;
+        padding-bottom: 0.5em;
+    }
+
+    .lp-user-avatar {
+        width: 30px;
+        height: 30px;
+    }
+
+    .lp-sidebar-rest {
+        margin-top: 0.35em;
+        gap: 0.35em;
+    }
+
+    .lp-action-area {
+        padding-top: 0.35em;
+    }
+
+    .lpm-modal {
+        height: calc(100dvh - 8px);
+    }
+}
+
+/* ============================================================
+   Accessible native controls
+   Keep native button semantics without inheriting ST's global pill styles.
+   ============================================================ */
+
+.lp-container .lp-sidebar button.lp-user-profile.lp-user-profile.lp-user-profile.lp-user-profile,
+.lp-container .lp-sidebar button.lp-menu-item.lp-menu-item.lp-menu-item.lp-menu-item,
+.lp-container .lp-sidebar button.lp-new-chat.lp-new-chat.lp-new-chat.lp-new-chat,
+.lp-container .lp-sidebar button.lp-settings-cog.lp-settings-cog.lp-settings-cog.lp-settings-cog {
+    appearance: none;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    color: inherit !important;
+    font: inherit !important;
+    letter-spacing: normal !important;
+    text-align: left;
+}
+
+.lp-container .lp-sidebar button.lp-user-profile.lp-user-profile.lp-user-profile.lp-user-profile,
+.lp-container .lp-sidebar button.lp-menu-item.lp-menu-item.lp-menu-item.lp-menu-item {
+    width: 100%;
+}
+
+.lp-container .lp-sidebar button.lp-tag-picker.lp-tag-picker.lp-tag-picker.lp-tag-picker {
+    appearance: none;
+    width: 100%;
+    background: transparent !important;
+    border: 1px solid var(--lp-border-soft) !important;
+    border-radius: var(--lp-radius-md, 6px) !important;
+    box-shadow: none !important;
+    color: var(--lp-text-secondary) !important;
+    font: inherit !important;
+    letter-spacing: normal !important;
+    text-align: left;
+}
+
+.lp-container .lp-sidebar button.lp-tag-picker.lp-tag-picker.lp-tag-picker.lp-tag-picker:hover {
+    background: var(--lp-border-soft) !important;
+    border-color: var(--lp-border-strong) !important;
+    color: var(--lp-text-primary) !important;
+}
+
+.lp-container .lp-cards-area button.lp-character-card.lp-character-card.lp-character-card.lp-character-card,
+/* The navigation clone is appended directly to <body>, outside .lp-container. */
+button.lp-character-card.lp-card-clone.lp-card-clone.lp-card-clone.lp-card-clone.lp-card-clone {
+    appearance: none;
+    min-height: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    color: inherit !important;
+    font: inherit !important;
+    letter-spacing: normal !important;
+}
+
+#lpPersonaMenu button.lp-persona-option {
+    appearance: none;
+    display: block;
+    padding: 0;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    color: inherit !important;
+    cursor: pointer;
+}
+
+#lpTagMenu .lp-tag-menu-list > li {
+    display: contents;
+}
+
+#lpTagMenu button.lp-tag-menu-item {
+    appearance: none;
+    width: 100%;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    color: var(--lp-text-secondary) !important;
+    font: inherit !important;
+    text-align: left;
+}
+
+#lpTagMenu button.lp-tag-menu-item:hover,
+#lpTagMenu button.lp-tag-menu-item.selected {
+    color: var(--lp-text-primary) !important;
+}
+
+.lpm-modal button.lpm-close.lpm-close.lpm-close.lpm-close,
+.lpm-modal button.lpm-nav-item.lpm-nav-item.lpm-nav-item.lpm-nav-item {
+    appearance: none;
+    min-height: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    font: inherit !important;
+    letter-spacing: normal !important;
+}
+
+.lpm-modal button.lpm-close.lpm-close.lpm-close.lpm-close {
+    border: 0 !important;
+    color: var(--lpm-text-faint) !important;
+}
+
+.lpm-modal button.lpm-close.lpm-close.lpm-close.lpm-close:hover {
+    color: var(--lpm-text) !important;
+}
+
+.lpm-modal button.lpm-nav-item.lpm-nav-item.lpm-nav-item.lpm-nav-item {
+    padding: 0 !important;
+    border-top: 0 !important;
+    border-right: 0 !important;
+    border-bottom: 0 !important;
+    border-left: 2px solid transparent !important;
+    border-radius: 0 !important;
+    color: var(--lpm-text-3) !important;
+}
+
+.lpm-modal button.lpm-nav-item.lpm-nav-item.lpm-nav-item.lpm-nav-item:hover {
+    background: var(--lpm-wash) !important;
+    color: var(--lpm-text-2) !important;
+}
+
+.lpm-modal button.lpm-nav-item.lpm-nav-item.lpm-nav-item.lpm-nav-item.lpm-nav-active {
+    background: var(--lpm-line-soft) !important;
+    border-left-color: var(--lpm-accent-soft) !important;
+    color: var(--lpm-text) !important;
+}
+
+.lpm-modal button.lpm-wp-tile.lpm-wp-tile.lpm-wp-tile.lpm-wp-tile {
+    appearance: none;
+    min-height: 0 !important;
+    padding: 0 !important;
+    border: 1px solid var(--lpm-line-soft) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background-color: transparent !important;
+    font: inherit !important;
+    letter-spacing: normal !important;
+}
+
+.lpm-modal button.lpm-wp-tile.lpm-wp-tile.lpm-wp-tile.lpm-wp-tile:hover,
+.lpm-modal button.lpm-wp-tile.lpm-wp-tile.lpm-wp-tile.lpm-wp-tile.lpm-wp-tile-active {
+    border-color: var(--lpm-accent-soft) !important;
+}
+
+.lpm-modal button.lpm-wp-tile-none.lpm-wp-tile-none.lpm-wp-tile-none.lpm-wp-tile-none {
+    background-color: var(--lpm-wash) !important;
+}
+
+.lpm-modal button.lpm-wp-tile-active.lpm-wp-tile-active.lpm-wp-tile-active.lpm-wp-tile-active {
+    border-color: var(--lpm-accent) !important;
+    box-shadow: 0 0 0 1px var(--lpm-accent-soft) inset !important;
+}
+
+.lp-container button:focus-visible,
+#lpPersonaMenu button:focus-visible,
+#lpTagMenu button:focus-visible {
+    outline: 2px solid rgba(220, 180, 140, 0.95) !important;
+    outline-offset: 2px;
+}
+
+.lpm-modal :is(button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid var(--lpm-accent) !important;
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lp-container *,
+    #lpPersonaMenu *,
+    #lpTagMenu *,
+    .lpm-overlay,
+    .lpm-modal,
+    .lpm-modal * {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+
+    .lp-character-card:hover { transform: translateY(15%); }
+    .lp-has-card:hover { transform: translateY(5%); }
+    .lp-view-card .lp-character-card:hover { transform: none; }
+    .lp-page-arrow:hover { transform: translateY(-50%); }
+    .lpm-wp-tile:hover { transform: none; }
+}
+
+@media (max-width: 760px) {
+    .lpm-modal button.lpm-nav-item.lpm-nav-item.lpm-nav-item.lpm-nav-item {
+        border-left: 0 !important;
+        border-bottom: 2px solid transparent !important;
+    }
+
+    .lpm-modal button.lpm-nav-item.lpm-nav-item.lpm-nav-item.lpm-nav-item.lpm-nav-active {
+        border-bottom-color: var(--lpm-accent-soft) !important;
+    }
+}

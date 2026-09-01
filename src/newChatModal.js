@@ -82,6 +82,14 @@ export async function showNewChatModal() {
     const $popup = $(popup.content);
 
     return new Promise((resolve) => {
+        let settled = false;
+        const finish = (result, closePopup = true) => {
+            if (settled) return;
+            settled = true;
+            if (closePopup) popup.complete();
+            resolve(result);
+        };
+
         $popup.find('#lp-nc-create').on('click', async function () {
             const charAvatar = $popup.find('#lp-nc-character').val();
             const personaAvatar = $popup.find('#lp-nc-persona').val();
@@ -95,16 +103,20 @@ export async function showNewChatModal() {
             btn.prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin"></i> Creating…');
             try {
                 await createNewChat(charAvatar, personaAvatar, chatName);
-                popup.complete();
-                resolve(true);
+                finish(true);
             } catch (err) {
                 console.error('[LPR] Failed to create chat:', err);
                 toastr.error('Failed to create chat', 'Landing Page');
                 btn.prop('disabled', false).html(original);
             }
         });
-        $popup.find('#lp-nc-cancel').on('click', () => { popup.complete(); resolve(false); });
-        popup.show();
+        $popup.find('#lp-nc-cancel').on('click', () => finish(false));
+        popup.show()
+            .then(() => finish(false, false))
+            .catch((err) => {
+                console.error('[LPR] New chat popup failed:', err);
+                finish(false, false);
+            });
         hidePopupControls(popup);
     });
 }
@@ -117,27 +129,32 @@ async function createNewChat(charAvatar, personaAvatar, chatName) {
     // Leaving the landing page for a chat — suppress its re-show.
     setNavigating(true);
 
-    // Select the character (opens their chat), switch persona if it changed,
-    // then start a fresh chat. Brief waits let ST settle between steps.
-    const charIndex = characters.indexOf(character);
-    await context.selectCharacterById(charIndex);
-    await new Promise(r => setTimeout(r, 400));
+    try {
+        // Select the character (opens their chat), switch persona if it changed,
+        // then start a fresh chat. Brief waits let ST settle between steps.
+        const charIndex = characters.indexOf(character);
+        await context.selectCharacterById(charIndex);
+        await new Promise(r => setTimeout(r, 400));
 
-    if (personaAvatar && personaAvatar !== user_avatar) {
-        await executeSlashCommands(`/persona ${personaAvatar}`);
-        await new Promise(r => setTimeout(r, 300));
-    }
-
-    await executeSlashCommands('/newchat');
-    await new Promise(r => setTimeout(r, 300));
-
-    if (chatName) {
-        const currentChatName = getCurrentChatId();
-        if (currentChatName) {
-            await renameChat(currentChatName, chatName);
-            await new Promise(r => setTimeout(r, 200));
+        if (personaAvatar && personaAvatar !== user_avatar) {
+            await executeSlashCommands(`/persona ${personaAvatar}`);
+            await new Promise(r => setTimeout(r, 300));
         }
-    }
 
-    toastr.success(`New chat created with ${character.name}`, 'Landing Page');
+        await executeSlashCommands('/newchat');
+        await new Promise(r => setTimeout(r, 300));
+
+        if (chatName) {
+            const currentChatName = getCurrentChatId();
+            if (currentChatName) {
+                await renameChat(currentChatName, chatName);
+                await new Promise(r => setTimeout(r, 200));
+            }
+        }
+
+        toastr.success(`New chat created with ${character.name}`, 'Landing Page');
+    } catch (err) {
+        setNavigating(false);
+        throw err;
+    }
 }

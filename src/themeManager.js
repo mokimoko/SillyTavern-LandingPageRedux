@@ -13,18 +13,19 @@ let loadedThemes = [];
 let initialized = false;
 
 export async function initTheme() {
-    if (initialized) return;
-    try {
-        const resp = await fetch(THEMES_URL);
-        if (resp.ok) {
-            const data = await resp.json();
-            loadedThemes = data.themes || [];
+    if (!initialized) {
+        try {
+            const resp = await fetch(THEMES_URL);
+            if (resp.ok) {
+                const data = await resp.json();
+                loadedThemes = data.themes || [];
+            }
+        } catch (err) {
+            console.error('[LPR] Failed to load themes:', err);
+            loadedThemes = [];
         }
-    } catch (err) {
-        console.error('[LPR] Failed to load themes:', err);
-        loadedThemes = [];
+        initialized = true;
     }
-    initialized = true;
 
     const settings = getSettings();
     applyTheme(settings.currentTheme || 'glass');
@@ -65,6 +66,15 @@ export function applyOverlay(opacity) {
         '--lp-bg-overlay',
         `rgba(0, 0, 0, ${(clamped / 100).toFixed(2)})`,
     );
+}
+
+export function clearTheme() {
+    const root = document.documentElement;
+    const variableNames = new Set(['--lp-bg-overlay']);
+    for (const theme of loadedThemes) {
+        Object.keys(theme.variables || {}).forEach(name => variableNames.add(name));
+    }
+    variableNames.forEach(name => root.style.removeProperty(name));
 }
 
 /** Persist + apply overlay opacity. */

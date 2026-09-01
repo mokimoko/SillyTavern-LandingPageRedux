@@ -1,0 +1,297 @@
+/* ============================================================
+   Control panel modal — prefix lpm-
+   Lifted from SimpleSummarizer's modal; sits above the landing page
+   (z-index 1000) and the persona menu (z-index 10000).
+   ============================================================ */
+
+.lpm-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--lpm-scrim);
+    z-index: 10001;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+}
+.lpm-overlay.lpm-visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.lpm-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.95);
+    width: min(860px, 92vw);
+    height: min(700px, 88vh);
+    height: min(700px, 88dvh);
+    background: var(--lpm-surface-solid);
+    border: 1px solid var(--lpm-line-soft);
+    z-index: 10002;
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    pointer-events: none;
+    overflow: hidden;
+}
+.lpm-modal.lpm-visible {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+    pointer-events: auto;
+}
+
+.lpm-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--lpm-line-soft);
+    flex-shrink: 0;
+}
+.lpm-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--lpm-text);
+    letter-spacing: 0.3px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.lpm-title i { color: var(--lpm-accent-soft); }
+
+.lpm-close {
+    cursor: pointer;
+    color: var(--lpm-text-faint);
+    font-size: 20px;
+    line-height: 1;
+    padding: 4px 6px;
+    transition: color 0.15s;
+}
+.lpm-close:hover { color: var(--lpm-text); }
+
+.lpm-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.lpm-rail {
+    width: 56px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--lpm-line-soft);
+    padding: 10px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.lpm-nav-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    cursor: pointer;
+    color: var(--lpm-text-3);
+    transition: color 0.15s, background 0.15s;
+    border-left: 2px solid transparent;
+}
+.lpm-nav-item:hover {
+    color: var(--lpm-text-2);
+    background: var(--lpm-wash);
+}
+.lpm-nav-item.lpm-nav-active {
+    color: var(--lpm-text);
+    background: var(--lpm-line-soft);
+    border-left-color: var(--lpm-accent-soft);
+}
+.lpm-nav-item i { font-size: 18px; }
+
+.lpm-content {
+    flex: 1;
+    padding: 16px 20px;
+    overflow-y: auto;
+}
+
+.lpm-tab-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+.lpm-tab-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.lpm-tab-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--lpm-text);
+}
+
+.lpm-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 70%;
+    gap: 10px;
+    color: var(--lpm-text-faint);
+    text-align: center;
+}
+.lpm-empty-state i { font-size: 28px; opacity: 0.4; }
+.lpm-empty-state p { margin: 0; font-size: 13px; }
+.lpm-empty-hint { font-size: 12px; opacity: 0.6; }
+
+/* ---- Modal form primitives (used by steps 8-11) ---- */
+
+.lpm-section-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--lpm-text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.lpm-section-label i { font-size: 12px; color: var(--lpm-accent-soft); }
+
+.lpm-setting-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 6px 0;
+}
+.lpm-setting-item-col {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 6px 0;
+}
+.lpm-setting-title { font-size: 13px; color: var(--lpm-text); font-weight: 500; }
+.lpm-setting-desc { font-size: 11px; color: var(--lpm-text-faint); margin-top: 1px; }
+
+.lpm-divider {
+    border: none;
+    border-top: 1px solid var(--lpm-line-soft);
+    margin: 14px 0;
+}
+
+.lpm-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    transition: background 0.15s, color 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+}
+.lpm-btn-accent {
+    background: var(--lpm-accent-bg);
+    color: var(--lpm-text-2);
+    border: 1px solid var(--lpm-accent-line);
+}
+.lpm-btn-accent:hover { background: var(--lpm-accent-bg-hover); color: var(--lpm-text); }
+.lpm-btn-ghost { background: none; color: var(--lpm-text-3); }
+.lpm-btn-ghost:hover { color: var(--lpm-text-2); background: var(--lpm-wash); }
+
+.lpm-btn-icon {
+    background: none;
+    border: none;
+    color: var(--lpm-text-faint);
+    cursor: pointer;
+    padding: 3px 5px;
+    font-size: 12px;
+    transition: color 0.15s;
+}
+.lpm-btn-icon:hover { color: var(--lpm-text-2); }
+
+.lpm-modal input[type='checkbox'] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 1.25em;
+    height: 1.25em;
+    border-radius: 4px;
+    background-color: var(--SmartThemeBlurTintColor, var(--lpm-sink));
+    border: 2px solid var(--SmartThemeBorderColor, var(--lpm-line));
+    display: grid;
+    place-content: center;
+    margin: 0;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
+}
+.lpm-modal input[type='checkbox']:active { transform: scale(0.92); }
+.lpm-modal input[type='checkbox']:checked {
+    background-color: var(--SmartThemeQuoteColor, var(--lpm-accent));
+}
+
+.lpm-select,
+.lpm-input-num {
+    padding: 5px 8px;
+    background: var(--lpm-wash);
+    border: 1px solid var(--lpm-line-soft);
+    color: var(--lpm-text);
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+}
+.lpm-input-num { width: 60px; text-align: center; cursor: text; }
+.lpm-select:focus,
+.lpm-input-num:focus { outline: none; border-color: var(--lpm-accent-line); }
+.lpm-select option { background: var(--lpm-surface-solid); color: var(--lpm-text); }
+/* ST core defines `select option:not(:checked){background:var(--black70a)}`
+   at specificity (0,1,2), which beats `.lpm-select option` (0,1,1) and
+   leaks a dark option list on light themes. Match `:not(:checked)` at
+   (0,2,1) so the theme surface wins; tint the selected row with accent. */
+.lpm-select option:not(:checked) { background: var(--lpm-surface-solid); }
+.lpm-select option:checked { background: var(--lpm-accent-bg); color: var(--lpm-text); }
+
+/* ---- Text input, field label, and info block ---- */
+
+.lpm-input-text {
+    padding: 5px 8px;
+    background: var(--lpm-wash);
+    border: 1px solid var(--lpm-line-soft);
+    color: var(--lpm-text);
+    font-size: 12px;
+    font-family: inherit;
+}
+.lpm-input-text:focus { outline: none; border-color: var(--lpm-accent-line); }
+
+.lpm-setting-item-col .lpm-input-text {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.lpm-field-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--lpm-text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    display: block;
+}
+
+.lpm-info-block {
+    font-size: 12px;
+    color: var(--lpm-text-3);
+    padding: 8px 12px;
+    background: var(--lpm-sink-soft);
+    border: 1px solid var(--lpm-wash);
+    line-height: 1.7;
+}
+.lpm-info-block strong { color: var(--lpm-accent); font-weight: 600; }
+
+

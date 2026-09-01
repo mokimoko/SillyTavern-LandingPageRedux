@@ -3,10 +3,9 @@
  *
  * Tiny control surface in ST's extensions panel: enable toggle,
  * default-view dropdown, and a button to open the full control panel modal.
- * Real settings live in the modal (built in step 7).
+ * Detailed settings live in the control-panel modal.
  */
-import { saveSettingsDebounced } from '../../../../../script.js';
-import { getSettings } from '../index.js';
+import { getSettings, setDefaultView, setLandingPageEnabled } from '../index.js';
 import { openLandingModal } from './modal.js';
 
 const DRAWER_HTML = `
@@ -40,18 +39,24 @@ const DRAWER_HTML = `
 `;
 
 export function initSettings() {
+    if (document.getElementById('lp-drawer')) return;
+
     const settings = getSettings();
 
-    // Append the drawer to ST's extensions panel
-    $('#extensions_settings2').append(DRAWER_HTML);
+    const left = document.getElementById('extensions_settings');
+    const right = document.getElementById('extensions_settings2');
+    const target = left && right
+        ? (right.children.length > left.children.length ? left : right)
+        : (left || right);
+    if (!target) return;
+    $(target).append(DRAWER_HTML);
 
     // Enabled toggle
     const enabledInput = document.getElementById('lp-enabled');
     if (enabledInput) {
         enabledInput.checked = !!settings.enabled;
-        enabledInput.addEventListener('change', (e) => {
-            settings.enabled = e.target.checked;
-            saveSettingsDebounced();
+        enabledInput.addEventListener('change', async (e) => {
+            await setLandingPageEnabled(e.target.checked);
         });
     }
 
@@ -60,14 +65,30 @@ export function initSettings() {
     if (defaultViewSelect) {
         defaultViewSelect.value = settings.defaultView || 'sprite';
         defaultViewSelect.addEventListener('change', (e) => {
-            settings.defaultView = e.target.value;
-            saveSettingsDebounced();
+            setDefaultView(e.target.value);
         });
     }
 
-    // Control panel button — opens the full modal (step 7)
+    // Control panel button opens the full modal.
     const openPanelBtn = document.getElementById('lp-open-panel');
     if (openPanelBtn) {
         openPanelBtn.addEventListener('click', () => openLandingModal());
     }
+}
+
+export function syncSettingsControls(settings = getSettings()) {
+    const enabled = !!settings.enabled;
+    const view = settings.defaultView === 'card' ? 'card' : 'sprite';
+    const drawerEnabled = document.getElementById('lp-enabled');
+    const modalEnabled = document.getElementById('lpm-enabled');
+    const drawerView = document.getElementById('lp-default-view');
+    const modalView = document.getElementById('lpm-default-view');
+    if (drawerEnabled) drawerEnabled.checked = enabled;
+    if (modalEnabled) modalEnabled.checked = enabled;
+    if (drawerView) drawerView.value = view;
+    if (modalView) modalView.value = view;
+}
+
+export function destroySettings() {
+    document.getElementById('lp-drawer')?.remove();
 }

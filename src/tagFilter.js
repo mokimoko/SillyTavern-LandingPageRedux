@@ -1,5 +1,5 @@
 /**
- * tagFilter.js — tag-based character filtering (step 9).
+ * tagFilter.js — tag-based character filtering.
  *
  * Pure logic over ST's native tag system. ST stores tags in two places:
  *   - `tags`    — array of { id, name, color?, color2?, sort_order?, ... }
@@ -7,15 +7,12 @@
  *
  * NOTE: tag_map is keyed by the raw `char.avatar` (e.g. "Seraphina.png"),
  * NOT a cleaned/lowercased form. Confirmed against ST core: getTagKeyForEntity
- * resolves the key to `character.avatar`. The gameplan's cleanAvatar()
- * assumption was wrong; we key on the raw avatar here.
+ * resolves the key to `character.avatar`, so filtering uses that raw value.
  */
 import { characters } from '../../../../../script.js';
 import { tags, tag_map } from '../../../../tags.js';
 import { getSettings } from '../index.js';
-
-/** Sort comparator: most-recently-chatted first; missing dates sort last. */
-const byRecent = (a, b) => (b.date_last_chat || 0) - (a.date_last_chat || 0);
+import { filterCharactersByTag } from './runtimeLogic.js';
 
 /**
  * Characters filtered by a tag, sorted most-recently-chatted first.
@@ -23,12 +20,7 @@ const byRecent = (a, b) => (b.date_last_chat || 0) - (a.date_last_chat || 0);
  * @returns {object[]} a new array (never mutates `characters`)
  */
 export function getFilteredCharacters(tagId) {
-    if (!tagId) {
-        return [...characters].sort(byRecent);
-    }
-    return characters
-        .filter(c => Array.isArray(tag_map[c.avatar]) && tag_map[c.avatar].includes(tagId))
-        .sort(byRecent);
+    return filterCharactersByTag(characters, tag_map, tagId);
 }
 
 /**
