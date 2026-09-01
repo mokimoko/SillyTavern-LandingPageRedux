@@ -1,0 +1,172 @@
+/* ============================================================
+   Tags modal tab
+   ============================================================ */
+
+.lpm-tag-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 320px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+.lpm-tag-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 0;
+}
+.lpm-tag-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+    cursor: pointer;
+}
+.lpm-tag-name {
+    font-size: 13px;
+    color: var(--lpm-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.lpm-tag-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 1px solid var(--lpm-text-faint);
+}
+.lpm-tag-dot-empty { background: transparent; border-style: dashed; }
+.lpm-tag-rename {
+    width: 150px;
+    flex-shrink: 0;
+}
+.lpm-tag-view-select {
+    width: 90px;
+    flex-shrink: 0;
+    font-size: 12px;
+    margin-left: auto;
+}
+
+/* ============================================================
+   Wallpapers modal tab
+   ============================================================ */
+
+.lpm-wp-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+}
+.lpm-wp-thumb {
+    width: 64px;
+    height: 40px;
+    flex-shrink: 0;
+    border: 1px solid var(--lpm-line);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+.lpm-wp-thumb-none {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--lpm-line);
+    background: var(--lpm-wash);
+}
+.lpm-wp-row-main { flex: 1; min-width: 0; }
+.lpm-wp-row-label {
+    font-size: 13px;
+    color: var(--lpm-text);
+    font-weight: 500;
+}
+.lpm-wp-row-file {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 2px;
+}
+.lpm-wp-name {
+    font-size: 11px;
+    color: var(--lpm-text-3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 220px;
+}
+.lpm-wp-none-text { font-style: italic; }
+.lpm-wp-missing {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: rgba(230, 140, 120, 0.9);
+    border: 1px solid rgba(230, 140, 120, 0.4);
+    padding: 1px 5px;
+    flex-shrink: 0;
+}
+.lpm-wp-row-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+/* Wallpaper picker grid */
+.lpm-wp-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 8px;
+}
+.lpm-wp-tile {
+    position: relative;
+    aspect-ratio: 16 / 10;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    border: 1px solid var(--lpm-line-soft);
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.1s;
+    overflow: hidden;
+}
+.lpm-wp-tile:hover {
+    border-color: var(--lpm-accent-soft);
+    transform: scale(1.02);
+}
+.lpm-wp-tile-active {
+    border-color: var(--lpm-accent);
+    box-shadow: 0 0 0 1px var(--lpm-accent-soft) inset;
+}
+.lpm-wp-tile-name {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 3px 6px;
+    font-size: 10px;
+    color: var(--lpm-text);
+    background: var(--lpm-tile-label);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.lpm-wp-tile-none {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    background: var(--lpm-wash);
+    color: var(--lpm-text-3);
+    font-size: 11px;
+}
+.lpm-wp-tile-none i { font-size: 16px; }
+.lpm-wp-loading {
+    grid-column: 1 / -1;
+    padding: 24px;
+    text-align: center;
+    color: var(--lpm-text-faint);
+    font-size: 12px;
+}
+
+

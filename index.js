@@ -4,54 +4,77 @@
  * Replaces ST's default landing page with an immersive character picker.
  * Standalone — does not depend on VerseManager.
  */
-import { eventSource, event_types, saveSettingsDebounced } from '../../../../script.js';
+import { eventSource, event_types, saveSettings, saveSettingsDebounced } from '../../../../script.js';
 import { extension_settings, getContext } from '../../../extensions.js';
 import { SlashCommandParser } from '../../../slash-commands/SlashCommandParser.js';
 import { SlashCommand } from '../../../slash-commands/SlashCommand.js';
 import { LandingPage } from './src/LandingPage.js';
-import { initSettings } from './src/settings.js';
-import { initTheme } from './src/themeManager.js';
+import { destroySettings, initSettings, syncSettingsControls } from './src/settings.js';
+import { clearTheme, initTheme } from './src/themeManager.js';
+import { destroyLandingModal } from './src/modal.js';
+import { syncTauriCloakMarker } from './src/tauriCloakMarker.js';
+import { normalizeSettings } from './src/settingsSchema.js';
 
 export const MODULE_NAME = 'landingPageRedux';
 
 let lp = null;
 let appReady = false;
 let isNavigating = false;
+let startupPromise = null;
+let lifecycleEnabled = true;
+let chatListenerRegistered = false;
+let bootstrapListenersRegistered = false;
+let landingCommand = null;
 
-const DEFAULT_SETTINGS = {
-    enabled: true,
-    defaultView: 'sprite',
-    cardNumCards: 10,
-    hideNames: false,
-    useExpressions: true,
-    expression: 'neutral',
-    extensions: ['png', 'gif', 'webp'],
-    exposedTags: [],
-    tagDisplayNames: {},
-    defaultTagFilter: null,
-    globalWallpaper: '',
-    tagWallpapers: {},
-    tagViewModes: {},
-    menuItems: [],
-    currentTheme: 'glass',
-    overlayOpacity: 35,
-    userThemes: [],
-    avatarScale: 100,
-    spriteNegCache: [],
-};
+let settingsValidated = false;
 
 export function getSettings() {
-    if (!extension_settings[MODULE_NAME]) {
-        extension_settings[MODULE_NAME] = structuredClone(DEFAULT_SETTINGS);
-    } else {
-        // Ensure new keys exist on installs upgraded from earlier versions
-        for (const [k, v] of Object.entries(DEFAULT_SETTINGS)) {
-            if (extension_settings[MODULE_NAME][k] === undefined) {
-                extension_settings[MODULE_NAME][k] = structuredClone(v);
-            }
-        }
+    if (!settingsValidated) {
+        const current = extension_settings[MODULE_NAME];
+        const normalized = normalizeSettings(current);
+        const changed = JSON.stringify(current ?? null) !== JSON.stringify(normalized);
+        extension_settings[MODULE_NAME] = normalized;
+        settingsValidated = true;
+        if (changed) saveSettingsDebounced();
     }
     return extension_settings[MODULE_NAME];
+}
+
+export async function setLandingPageEnabled(enabled) {
+    const settings = getSettings();
+    settings.enabled = !!enabled;
+    syncSettingsControls(settings);
+
+    // This flag controls UIBedazzler's TT startup cloak, so persist it before
+    // returning instead of leaving it queued in the general settings debounce.
+    await saveSettings();
+    await syncTauriCloakMarker(settings.enabled);
+
+    if (settings.enabled) {
+        await initTheme();
+        if (appReady) await syncLandingWithCurrentChat();
+    } else {
+        await teardownLandingUi();
+        try { window.__nebulaLiftCloak?.(true); } catch { /* */ }
+    }
+}
+
+export function setDefaultView(value, { apply = true } = {}) {
+    const settings = getSettings();
+    settings.defaultView = value === 'card' ? 'card' : 'sprite';
+    saveSettingsDebounced();
+    syncSettingsControls(settings);
+
+    if (apply && lp) {
+        const resolved = lp.resolveViewForTag(lp.currentTagFilter);
+        if (lp.currentView !== resolved) {
+            lp.currentView = resolved;
+            lp.currentPage = 0;
+            lp.updateViewToggle?.();
+            lp.loadCharacters?.();
+        }
+    }
+    return settings.defaultView;
 }
 
 // Resolve the Nebula Loader cloak's fate AS EARLY AS POSSIBLE — at module
@@ -87,6 +110,30 @@ export function getLandingPage() {
     return lp;
 }
 
+function restoreSillyTavernShell() {
+    const sheld = document.querySelector('#sheld');
+    if (sheld) {
+        sheld.style.opacity = '';
+        sheld.style.pointerEvents = '';
+    }
+}
+
+async function removeLandingSurface() {
+    restoreSillyTavernShell();
+    if (lp) {
+        const currentPage = lp;
+        lp = null;
+        await currentPage.cleanup();
+    }
+    isNavigating = false;
+}
+
+async function teardownLandingUi() {
+    destroyLandingModal();
+    await removeLandingSurface();
+    clearTheme();
+}
+
 async function onChatChanged(chatId) {
     if (!appReady) return;
 
@@ -102,16 +149,22 @@ async function onChatChanged(chatId) {
         await lp.show();
     } else {
         // Chat loaded — clean up landing page
-        const sheld = document.querySelector('#sheld');
-        if (sheld) {
-            sheld.style.opacity = '';
-            sheld.style.pointerEvents = '';
-        }
-        if (lp) {
-            lp.cleanup();
-            lp = null;
-        }
-        isNavigating = false;
+        await removeLandingSurface();
+    }
+}
+
+async function syncLandingWithCurrentChat() {
+    const chatId = getContext().chatId;
+    const shouldShow = chatId === undefined && getSettings().enabled;
+
+    if (shouldShow) {
+        try { window.__nebulaClaimCloak?.(); } catch { /* */ }
+    }
+
+    await onChatChanged(chatId);
+
+    if (!shouldShow) {
+        try { window.__nebulaLiftCloak?.(); } catch { /* */ }
     }
 }
 
@@ -129,72 +182,133 @@ async function goToLandingPage() {
     return '';
 }
 
-function toggleLandingPage(args, value) {
+async function toggleLandingPage(args, value) {
     const input = (value || '').trim().toLowerCase();
     const settings = getSettings();
 
     if (input === 'on') {
-        settings.enabled = true;
-        saveSettingsDebounced();
+        await setLandingPageEnabled(true);
         toastr.success('Landing Page enabled', 'Landing Page');
-        if (getContext().chatId === undefined) {
-            onChatChanged(undefined);
-        }
         return 'Landing Page enabled';
     }
     if (input === 'off') {
-        settings.enabled = false;
-        saveSettingsDebounced();
+        await setLandingPageEnabled(false);
         toastr.info('Landing Page disabled', 'Landing Page');
-        if (lp) lp.hide();
-        const sheld = document.querySelector('#sheld');
-        if (sheld) {
-            sheld.style.opacity = '';
-            sheld.style.pointerEvents = '';
-        }
         return 'Landing Page disabled';
     }
     return goToLandingPage();
 }
 
 async function init() {
-    getSettings(); // ensure populated
-
-    // Load themes + apply current
+    getSettings();
     await initTheme();
+    if (!lifecycleEnabled) return;
 
-    // Drawer stub in ST extensions panel
     initSettings();
 
-    // /landing slash command
-    SlashCommandParser.addCommandObject(SlashCommand.fromProps({
-        name: 'landing',
-        callback: toggleLandingPage,
-        helpString: '(on|off) – Toggle landing page, or navigate to it. Use "on"/"off" to enable/disable, or no args to go to it.',
-    }));
+    if (!landingCommand) {
+        landingCommand = SlashCommand.fromProps({
+            name: 'landing',
+            callback: toggleLandingPage,
+            helpString: '(on|off) – Toggle landing page, or navigate to it. Use "on"/"off" to enable/disable, or no args to go to it.',
+        });
+        SlashCommandParser.addCommandObject(landingCommand);
+    }
 
-    // Chat-state listener
-    eventSource.on(event_types.CHAT_CHANGED, onChatChanged);
+    if (!chatListenerRegistered) {
+        eventSource.on(event_types.CHAT_CHANGED, onChatChanged);
+        chatListenerRegistered = true;
+    }
 }
 
-eventSource.on(event_types.APP_READY, async () => {
-    appReady = true;
-    await init();
+/**
+ * SillyTavern lifecycle hook. The manifest runs this during the blocking load
+ * phase, so the landing surface is mounted before the normal UI is interactive.
+ */
+export async function activate() {
+    if (!lifecycleEnabled) return;
+    if (startupPromise) return startupPromise;
 
-    // Initial show: if no chat is open and we're enabled
-    if (getContext().chatId === undefined && getSettings().enabled) {
-        // Claim the Nebula Loader cloak BEFORE rendering: our render can take a
-        // while (expression sprite lookups, etc.), and we don't want the cloak's
-        // short failsafe to lift mid-render and expose the bare ST shell. Claiming
-        // cancels that short timer; we lift the cloak ourselves once .lp-loaded is
-        // set. No-op when nebula-loader isn't installed.
-        try { window.__nebulaClaimCloak?.(); } catch { /* */ }
-        await onChatChanged(undefined);
-    } else {
-        // No landing page is going to paint (disabled, or a chat is already
-        // open). If the Nebula Loader handoff cloak is up, lift it now so the
-        // real ST UI is revealed immediately instead of waiting out the cloak's
-        // own failsafe timer. No-op when nebula-loader isn't installed.
-        try { window.__nebulaLiftCloak?.(); } catch { /* */ }
+    startupPromise = (async () => {
+        appReady = true;
+        await init();
+        await syncTauriCloakMarker(getSettings().enabled);
+        await syncLandingWithCurrentChat();
+    })();
+
+    try {
+        return await startupPromise;
+    } finally {
+        startupPromise = null;
     }
-});
+}
+
+export async function onExtensionEnable() {
+    lifecycleEnabled = true;
+    registerBootstrapListeners();
+    await activate();
+}
+
+export async function onExtensionDisable() {
+    lifecycleEnabled = false;
+    appReady = false;
+    unregisterRuntimeListeners();
+    unregisterLandingCommand();
+    destroySettings();
+    await teardownLandingUi();
+    await syncTauriCloakMarker(false);
+}
+
+export async function onExtensionDelete() {
+    await onExtensionDisable();
+}
+
+// Compatibility fallback for hosts without manifest lifecycle hooks. Current
+// ST auto-fires APP_INITIALIZED for late listeners; older builds fall back to
+// APP_READY. APP_READY also performs a final refresh after character data and
+// other asynchronous startup work have settled.
+const bootstrapEvent = event_types.APP_INITIALIZED || event_types.APP_READY;
+async function onBootstrap() {
+    const startedBeforeEvent = !!startupPromise;
+    await activate();
+    if (startedBeforeEvent && lifecycleEnabled) await syncLandingWithCurrentChat();
+}
+
+async function onAppReady() {
+    await activate();
+    if (lifecycleEnabled) await syncLandingWithCurrentChat();
+}
+
+function registerBootstrapListeners() {
+    if (bootstrapListenersRegistered) return;
+    if (bootstrapEvent) eventSource.on(bootstrapEvent, onBootstrap);
+    if (event_types.APP_READY && event_types.APP_READY !== bootstrapEvent) {
+        eventSource.on(event_types.APP_READY, onAppReady);
+    }
+    bootstrapListenersRegistered = true;
+}
+
+function unregisterRuntimeListeners() {
+    if (chatListenerRegistered) {
+        eventSource.removeListener(event_types.CHAT_CHANGED, onChatChanged);
+        chatListenerRegistered = false;
+    }
+    if (bootstrapListenersRegistered) {
+        if (bootstrapEvent) eventSource.removeListener(bootstrapEvent, onBootstrap);
+        if (event_types.APP_READY && event_types.APP_READY !== bootstrapEvent) {
+            eventSource.removeListener(event_types.APP_READY, onAppReady);
+        }
+        bootstrapListenersRegistered = false;
+    }
+}
+
+function unregisterLandingCommand() {
+    if (!landingCommand) return;
+    for (const [name, command] of Object.entries(SlashCommandParser.commands || {})) {
+        if (command === landingCommand) delete SlashCommandParser.commands[name];
+    }
+    landingCommand = null;
+}
+
+registerBootstrapListeners();
+

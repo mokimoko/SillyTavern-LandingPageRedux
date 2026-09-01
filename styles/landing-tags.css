@@ -1,0 +1,95 @@
+/* ============================================================
+   Tag filter picker — sidebar
+   ============================================================ */
+
+.lp-tag-picker-host { display: block; }
+
+.lp-tag-picker {
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    padding: 0.55em 0.7em;
+    border: 1px solid var(--lp-border-soft);
+    border-radius: var(--lp-radius-md, 6px);
+    color: var(--lp-text-secondary);
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.lp-tag-picker:hover {
+    background: var(--lp-border-soft);
+    border-color: var(--lp-border-strong);
+    color: var(--lp-text-primary);
+}
+.lp-tag-picker-icon { color: var(--lp-text-tertiary); flex-shrink: 0; }
+.lp-tag-picker-label {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.95em;
+}
+.lp-tag-caret { color: var(--lp-text-tertiary); flex-shrink: 0; }
+
+/* Tag menu (appended to <body> for Popper positioning) */
+#lpTagMenu {
+    z-index: 10000;
+    background: var(--lp-menu-bg, var(--lpm-surface-menu));
+    backdrop-filter: blur(var(--lp-sidebar-blur, 12px));
+    -webkit-backdrop-filter: blur(var(--lp-sidebar-blur, 12px));
+    border: 1px solid var(--lp-border-soft);
+    border-radius: var(--lp-radius-md, 6px);
+    padding: 0.3em;
+    min-width: 180px;
+    max-height: 50vh;
+    overflow-y: auto;
+}
+#lpTagMenu ul.lp-tag-menu-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1em;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.lp-tag-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    padding: 0.5em 0.6em;
+    border-radius: var(--lp-radius-md, 6px);
+    color: var(--lp-text-secondary);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+.lp-tag-menu-item:hover {
+    background: var(--lp-border-soft);
+    color: var(--lp-text-primary);
+}
+.lp-tag-menu-item.selected { color: var(--lp-text-primary); }
+.lp-tag-menu-name {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.95em;
+}
+.lp-tag-menu-item .lp-tag-check {
+    color: rgba(220, 180, 140, 0.9);
+    font-size: 0.85em;
+    opacity: 0;
+    flex-shrink: 0;
+}
+.lp-tag-menu-item.selected .lp-tag-check { opacity: 1; }
+
+.lp-tag-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.lp-tag-dot-empty { background: transparent; border-style: dashed; }
+

@@ -1,0 +1,596 @@
+/* ============================================================
+   Landing Page Redux — base styles
+   Container, sidebar, cards area, and shared theme variables.
+   ============================================================ */
+
+:root {
+    /* Theme variables (defaults = Glass). themeManager swaps these at runtime. */
+    --lp-bg-main: rgba(0, 0, 0, 0.3);
+    --lp-bg-overlay: rgba(0, 0, 0, 0.35);
+    --lp-sidebar-bg: linear-gradient(to right, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.15), transparent);
+    --lp-sidebar-blur: 10px;
+    --lp-menu-bg: rgba(10, 10, 14, 0.7);
+    --lp-border-soft: rgba(255, 255, 255, 0.08);
+    --lp-border-strong: rgba(255, 255, 255, 0.18);
+    --lp-text-primary: rgba(255, 255, 255, 0.9);
+    --lp-text-secondary: rgba(255, 255, 255, 0.65);
+    --lp-text-tertiary: rgba(255, 255, 255, 0.4);
+    --lp-sidebar-width: 250px;
+    --lp-radius-md: 6px;
+    /* Sprite-view maximum. Runtime sizing also respects card-area width,
+       viewport height, and the user's avatar scale. */
+    --lp-card-base-height: 450px;
+}
+
+/* ============================================================
+   Control-panel modal (.lpm-*) — theme-adaptive token layer.
+   Converted from a fixed dark palette to --SmartTheme*-derived tokens
+   so the modal reads correctly on BOTH light and dark ST themes.
+   The landing page surface itself (.lp-*) keeps its own theme picker.
+
+   Families:
+   - surface:  frosted theme tint (SmartThemeBlurTintColor)
+   - text:     3 tiers, color-mix on SmartThemeBodyColor
+   - accent:   SmartThemeQuoteColor (matches the rest of the suite)
+   - hairline: body-color at low alpha (tracks theme hue)
+   - sink:     low-alpha BLACK recess — always darkens (never a body mix,
+               which would invert direction between light/dark)
+   - scrim:    dark backdrop dimmer (stays dark on both themes)
+   - danger:   semantic red, stays literal (defined inline, not tokenised)
+   ============================================================ */
+:root {
+    /* Surfaces */
+    --lpm-surface:        color-mix(in srgb, var(--SmartThemeBlurTintColor) 88%, var(--SmartThemeBodyColor) 4%);
+    --lpm-surface-solid:  color-mix(in srgb, var(--SmartThemeBlurTintColor) 97%, var(--SmartThemeBodyColor) 6%);
+    --lpm-surface-menu:   color-mix(in srgb, var(--SmartThemeBlurTintColor) 82%, transparent);
+
+    /* Text tiers (color-mix on body color so muting works in both directions) */
+    --lpm-text:       color-mix(in srgb, var(--SmartThemeBodyColor) 85%, transparent);
+    --lpm-text-2:     color-mix(in srgb, var(--SmartThemeBodyColor) 62%, transparent);
+    --lpm-text-3:     color-mix(in srgb, var(--SmartThemeBodyColor) 40%, transparent);
+    --lpm-text-faint: color-mix(in srgb, var(--SmartThemeBodyColor) 28%, transparent);
+
+    /* Hairlines + washes (body-color hue at low alpha) */
+    --lpm-line:       color-mix(in srgb, var(--SmartThemeBodyColor) 12%, transparent);
+    --lpm-line-soft:  color-mix(in srgb, var(--SmartThemeBodyColor) 6%, transparent);
+    --lpm-wash:       color-mix(in srgb, var(--SmartThemeBodyColor) 4%, transparent);
+    --lpm-wash-hover: color-mix(in srgb, var(--SmartThemeBodyColor) 8%, transparent);
+
+    /* Accent (SmartThemeQuoteColor — LP modal has no separate identity) */
+    --lpm-accent:      var(--SmartThemeQuoteColor);
+    --lpm-accent-soft: color-mix(in srgb, var(--SmartThemeQuoteColor) 60%, transparent);
+    --lpm-accent-line: color-mix(in srgb, var(--SmartThemeQuoteColor) 40%, transparent);
+    --lpm-accent-bg:   color-mix(in srgb, var(--SmartThemeQuoteColor) 20%, transparent);
+    --lpm-accent-bg-hover: color-mix(in srgb, var(--SmartThemeQuoteColor) 30%, transparent);
+
+    /* Sink (recess) + scrim (backdrop) — direction-stable darks */
+    --lpm-sink:       rgba(0, 0, 0, 0.18);
+    --lpm-sink-soft:  rgba(0, 0, 0, 0.15);
+    --lpm-scrim:      rgba(0, 0, 0, 0.55);
+    --lpm-tile-label: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+
+    /* Danger (semantic — stays fixed hue) */
+    --lpm-danger:      rgba(230, 140, 120, 0.9);
+    --lpm-danger-line: rgba(230, 140, 120, 0.4);
+}
+
+.lp-container {
+    position: fixed;
+    inset: 0;
+    z-index: 9000; /* above ST's #top-bar (3005); below our menus (10000) + modal (10001/2) */
+    display: flex;
+    flex-direction: row;
+    background: var(--lp-bg-main);
+    color: var(--lp-text-primary);
+    opacity: 0;
+    transition: opacity 400ms ease;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.lp-container.lp-loaded {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Hide ST's chat shell + top bar while the landing page is up.
+   (#top-bar sits at z-index 3005; we also cover it via the container's
+   z-index, but hiding it avoids it bleeding through the translucent theme.) */
+body:has(.lp-container.lp-loaded) #sheld,
+body:has(.lp-container.lp-loaded) #top-bar,
+body:has(.lp-container.lp-loaded) #top-settings-holder {
+    display: none !important;
+}
+
+/* Hide UI Bedazzler's body-level floating UI while the landing page is up.
+   These get appended directly to <body> (siblings of .lp-container), so the
+   #top-bar / #sheld hide rules above don't catch them — they bleed through
+   the translucent theme on their own z-index. #bd-side-buttons is the side
+   strip; .bd-side-btn covers any stragglers if the container id ever changes. */
+body:has(.lp-container.lp-loaded) #bd-side-buttons,
+body:has(.lp-container.lp-loaded) .bd-side-btn {
+    display: none !important;
+}
+
+/* Background crossfade — two stacked layers, only the active one is opaque.
+   refreshBackground() sets the incoming layer's image + toggles the active
+   class; the opacity transition does the fade. (background-image can't animate,
+   which is why the old single-layer transition was a no-op.) */
+.lp-background-wrap {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+}
+
+.lp-bg-layer {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    opacity: 0;
+    transition: opacity 500ms ease;
+}
+
+.lp-bg-layer-active {
+    opacity: 1;
+}
+
+.lp-background-overlay {
+    position: absolute;
+    inset: 0;
+    background: var(--lp-bg-overlay);
+    z-index: 1;
+    pointer-events: none;
+}
+
+.lp-sidebar {
+    position: relative;
+    z-index: 2;
+    width: var(--lp-sidebar-width);
+    flex-shrink: 0;
+    height: 100vh;
+    height: 100dvh;
+    background: var(--lp-sidebar-bg);
+    backdrop-filter: blur(var(--lp-sidebar-blur));
+    -webkit-backdrop-filter: blur(var(--lp-sidebar-blur));
+    border-right: 1px solid var(--lp-border-soft);
+    display: flex;
+    flex-direction: column;
+    padding: 1.5em 1em;
+    box-sizing: border-box;
+    overflow-y: auto;
+}
+
+.lp-sidebar-placeholder {
+    text-align: center;
+    color: var(--lp-text-secondary);
+    opacity: 0.8;
+}
+
+.lp-sidebar-placeholder i {
+    font-size: 2em;
+    margin-bottom: 0.5em;
+    display: block;
+    color: var(--lp-text-tertiary);
+}
+
+.lp-sidebar-placeholder small {
+    display: block;
+    margin-top: 0.4em;
+    font-size: 0.8em;
+    color: var(--lp-text-tertiary);
+}
+
+/* ============================================================
+   User profile + persona selector
+   ============================================================ */
+
+.lp-user-profile {
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    padding: 0.5em 0.6em;
+    border-radius: var(--lp-radius-md, 6px);
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.lp-user-profile:hover {
+    background: var(--lp-border-soft);
+}
+
+.lp-user-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.lp-user-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.lp-user-name {
+    flex: 1;
+    min-width: 0;
+    font-weight: 500;
+    color: var(--lp-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.lp-user-caret {
+    color: var(--lp-text-tertiary);
+    flex-shrink: 0;
+}
+
+/* Persona dropdown (appended to <body> for Popper positioning) */
+#lpPersonaMenu {
+    z-index: 10000;
+    background: var(--lp-menu-bg, rgba(10, 10, 14, 0.7));
+    backdrop-filter: blur(var(--lp-sidebar-blur, 12px));
+    -webkit-backdrop-filter: blur(var(--lp-sidebar-blur, 12px));
+    border: 1px solid var(--lp-border-soft);
+    border-radius: var(--lp-radius-md, 6px);
+    padding: 0.4em;
+    max-height: 50vh;
+    overflow-y: auto;
+}
+
+#lpPersonaMenu ul.list-group {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 0.4em;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    max-width: 264px;
+    /* ST core styles bare `.list-group` with the theme tint + blur + border.
+       The dark #lpPersonaMenu panel is meant to show through, so neutralise
+       ST's surface here and let the panel provide the background. */
+    background-color: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+}
+
+#lpPersonaMenu .list-group-item {
+    width: auto !important;
+    flex: 0 0 auto;
+    padding: 0.2em;
+    border: none;
+    background: transparent !important;
+    color: var(--lp-text-primary, rgba(255, 255, 255, 0.9)) !important;
+    border-radius: var(--lp-radius-md, 6px);
+    cursor: pointer;
+}
+
+.lpPersonaMenuImg {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+    border: 2px solid transparent;
+    transition: border-color 0.15s ease;
+}
+
+.lpPersonaMenuImg:hover {
+    border-color: var(--lp-border-strong);
+}
+
+.lpPersonaMenuImg.selected {
+    border-color: rgba(220, 180, 140, 0.9);
+}
+
+/* ============================================================
+   Custom button menu
+   ============================================================ */
+
+.lp-sidebar-rest {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75em;
+    margin-top: 1em;
+    min-height: 0;
+}
+
+.lp-menu-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3em;
+}
+
+.lp-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 0.7em;
+    padding: 0.55em 0.7em;
+    border-radius: var(--lp-radius-md, 6px);
+    color: var(--lp-text-secondary);
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.lp-menu-item:hover {
+    background: var(--lp-border-soft);
+    color: var(--lp-text-primary);
+}
+
+.lp-menu-item i {
+    width: 1.1em;
+    text-align: center;
+    flex-shrink: 0;
+    color: var(--lp-text-tertiary);
+    transition: color 0.15s ease;
+}
+
+.lp-menu-item:hover i {
+    color: rgba(220, 180, 140, 0.9);
+}
+
+.lp-menu-item span {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.95em;
+}
+
+.lp-top-icon-bar {
+    position: absolute;
+    top: 1em;
+    right: 1em;
+    z-index: 3;
+    display: flex;
+    gap: 0.5em;
+}
+
+/* Drawer stub in the ST extensions panel */
+.lp-drawer-label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4em;
+    margin-top: 0.6em;
+    font-size: 0.9em;
+}
+
+.lp-drawer-actions {
+    margin-top: 0.8em;
+}
+
+/* ============================================================
+   Cards area + character cards (sprite view)
+   ============================================================ */
+
+.lp-cards-area {
+    position: relative;
+    z-index: 2;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end; /* sprite view: bottom-aligned */
+    justify-content: center;
+    gap: 0;   /* per-card margins handle spacing (sprite vs avatar differ) */
+    padding: 0 2em 2em;
+    box-sizing: border-box;
+    height: 100vh;
+    height: 100dvh;
+}
+
+.lp-character-card {
+    width: auto;            /* hug the 3:4 avatar so cards don't drift apart */
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.4s ease;
+    transform: translateY(15%); /* bleed off the bottom edge (original feel) */
+    transform-origin: bottom center;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.lp-character-card:hover {
+    transform: translateY(8%);
+}
+
+.lp-card-avatar {
+    aspect-ratio: 3 / 4;                              /* uniform portrait */
+    height: calc(var(--lp-card-height, 450px) * 0.8); /* width derives from ratio */
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: var(--lp-radius-md, 6px);
+}
+
+.lp-card-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;            /* fill the box instead of floating at intrinsic size */
+    object-position: top center;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    filter: drop-shadow(2px 4px 10px rgba(0, 0, 0, 0.7));
+}
+
+.lp-card-avatar img.loaded {
+    opacity: 1;
+}
+
+.lp-card-name {
+    position: absolute;
+    bottom: 12%;   /* sits just above the bottom edge, clear of the bleed */
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255, 255, 255, 0.95);
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+    font-size: 1.1em;
+    font-weight: 500;
+    white-space: nowrap;
+    max-width: 95%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.lp-no-characters {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--lp-text-secondary);
+    font-size: 1.1em;
+}
+
+/* ---- Sprite view: sprite vs avatar-fallback differentiation ----
+   .lp-has-sprite  = expression image (transparent bg, tall, narrow)
+   .lp-has-card    = card avatar fallback (opaque, 3:4 portrait)
+   These only matter in sprite view; card-view overrides below win. */
+
+/* Sprites: negative margin pulls them closer (transparent bg = no visual overlap) */
+.lp-has-sprite {
+    margin: 0 -2em;
+}
+.lp-has-sprite .lp-card-avatar {
+    height: calc(var(--lp-card-height, 450px) * 1.2);
+    aspect-ratio: auto;           /* let sprite dictate its own width */
+    overflow: visible;
+    border-radius: 0;
+}
+.lp-has-sprite .lp-card-avatar img {
+    object-fit: contain;          /* show full sprite, no crop */
+    object-position: bottom center;
+    width: auto;                  /* natural width, not 100% */
+    max-width: none;
+}
+
+.lp-cards-area.lp-view-sprite .lp-character-card {
+    width: var(--lp-card-width, 240px);
+    min-width: 0;
+    flex: 0 1 var(--lp-card-width, 240px);
+}
+.lp-cards-area.lp-view-sprite .lp-card-avatar {
+    max-width: 100%;
+}
+.lp-cards-area.lp-view-sprite .lp-has-sprite .lp-card-avatar {
+    width: 100%;
+}
+.lp-cards-area.lp-view-sprite .lp-has-sprite .lp-card-avatar img {
+    /* Sprite height is the user-controlled dimension. A width cap makes
+       differently padded canvases appear smaller and prevents taller scale
+       settings from changing their rendered size. */
+    max-width: none;
+}
+
+/* Avatar fallbacks: wider spacing, partial bottom crop, framed portrait.
+   Bottom-aligned via the parent's align-items:flex-end so the cards stay
+   pinned near the bottom regardless of avatarScale. translateY creates the
+   partial bleed (percentage of the card's own height → scale-independent). */
+.lp-has-card {
+    margin: 0 0.5em;
+    transform: translateY(5%);    /* 5% of card bleeds below the viewport */
+}
+.lp-has-card:hover {
+    transform: translateY(-2%);   /* subtle lift from resting position */
+}
+/* Avatar box keeps base defaults: aspect-ratio 3:4, cover, border-radius, overflow hidden */
+
+/* Pagination arrows — minimal, icon-only */
+.lp-page-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 48px;
+    height: 48px;
+    border-radius: 0;
+    border: none;
+    background: none;
+    color: var(--lp-text-tertiary, rgba(255, 255, 255, 0.4));
+    cursor: pointer;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6em;
+    transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.lp-page-arrow:hover {
+    color: var(--lp-text-primary, rgba(255, 255, 255, 0.9));
+    transform: translateY(-50%) scale(1.15);
+}
+
+/* Same ST-theme bare-<button> override as the view toggle (see note there).
+   Strictly-higher (0,6,1) selector + !important so themed pill styling can't
+   repaint the arrows. transform is left to the base/hover rules above. */
+.lp-container .lp-cards-area button.lp-page-arrow.lp-page-arrow.lp-page-arrow.lp-page-arrow {
+    background: rgba(0, 0, 0, 0.3) !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 50% !important;
+    box-shadow: none !important;
+    color: var(--lp-text-tertiary, rgba(255, 255, 255, 0.4)) !important;
+    font-size: 1.6em !important;
+    font-weight: normal !important;
+    letter-spacing: normal !important;
+    transition: background 0.15s ease, color 0.15s ease, transform 0.2s ease;
+}
+.lp-container .lp-cards-area button.lp-page-arrow.lp-page-arrow.lp-page-arrow.lp-page-arrow:hover {
+    color: var(--lp-text-primary, rgba(255, 255, 255, 0.9)) !important;
+    background: rgba(0, 0, 0, 0.45) !important;
+    box-shadow: none !important;
+}
+
+.lp-page-arrow-left  { left: 1em; }
+.lp-page-arrow-right { right: 1em; }
+
+
+/* ============================================================
+   Sidebar action area + settings cog
+   ============================================================ */
+
+.lp-action-area {
+    margin-top: auto;              /* pin to the bottom of the flex column */
+    padding-top: 1em;
+    border-top: 1px solid var(--lp-border-soft);
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+}
+
+.lp-settings-cog {
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--lp-radius-md, 6px);
+    color: var(--lp-text-tertiary);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.lp-settings-cog:hover {
+    background: var(--lp-border-soft);
+    color: var(--lp-text-primary);
+}
