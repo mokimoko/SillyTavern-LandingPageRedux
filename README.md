@@ -51,3 +51,12 @@ Landing Page Redux targets current SillyTavern and TauriTavern builds with exten
 
 - [Landing Page](https://github.com/LenAnderson/SillyTavern-LandingPage/)
 - [Quick Persona](https://github.com/SillyTavern/Extension-QuickPersona)
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md).
+
+## License
+
+MIT. See [LICENSE](LICENSE).
+
